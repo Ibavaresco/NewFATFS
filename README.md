@@ -1,7 +1,7 @@
 # NewFATFS
 POSIX and NewLib compatible FAT filesystem based on Chan's FatFs
 
-/*============================================================================*/
+/==============================================================================/
 FAT File System routines based on Chan's FatFs (<http://elm-chan.org/fsw/ff/>).
 Please see his original copyright and license further below.
 
@@ -87,9 +87,9 @@ of the C library, including bufferd files and the functions that work with them
 WARNING: Although I tested most of the code, it is still under development. I am
 publishing it now to allow for others to try it and help in the testing and
 perhaps in the development too.
-/*============================================================================*/
+/==============================================================================/
 
-/*  ----------------------------------------------------------------------------/
+/   ----------------------------------------------------------------------------/
     /  FatFs - Generic FAT Filesystem Module  R0.15 w/patch1                      /
     /-----------------------------------------------------------------------------/
     /
@@ -107,4 +107,4 @@ perhaps in the development too.
     / The copyright owner or contributors be NOT LIABLE for any damages caused
     / by use of this software.
     /
-    /----------------------------------------------------------------------------*/
+    /-----------------------------------------------------------------------------/
