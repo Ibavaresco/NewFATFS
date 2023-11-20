@@ -2,6 +2,7 @@
 POSIX and NewLib compatible FAT filesystem based on Chan's FatFs
 
 /==============================================================================/
+
 FAT File System routines based on Chan's FatFs (<http://elm-chan.org/fsw/ff/>).
 Please see his original copyright and license further below.
 
@@ -87,24 +88,25 @@ of the C library, including bufferd files and the functions that work with them
 WARNING: Although I tested most of the code, it is still under development. I am
 publishing it now to allow for others to try it and help in the testing and
 perhaps in the development too.
+
 /==============================================================================/
 
-/   ----------------------------------------------------------------------------/
+    /-----------------------------------------------------------------------------/
+
     /  FatFs - Generic FAT Filesystem Module  R0.15 w/patch1                      /
+    
     /-----------------------------------------------------------------------------/
-    /
-    / Copyright (C) 2022, ChaN, all right reserved.
-    /
-    / FatFs module is an open source software. Redistribution and use of FatFs in
-    / source and binary forms, with or without modification, are permitted provided
-    / that the following condition is met:
-    /
-    / 1. Redistributions of source code must retain the above copyright notice,
-    /    this condition and the following disclaimer.
-    /
-    / This software is provided by the copyright holder and contributors "AS IS"
-    / and any warranties related to this software are DISCLAIMED.
-    / The copyright owner or contributors be NOT LIABLE for any damages caused
-    / by use of this software.
-    /
-    /-----------------------------------------------------------------------------/
+
+    Copyright (C) 2022, ChaN, all right reserved.
+    
+    FatFs module is an open source software. Redistribution and use of FatFs in
+    source and binary forms, with or without modification, are permitted provided
+    that the following condition is met:
+    
+    1. Redistributions of source code must retain the above copyright notice,
+        this condition and the following disclaimer.
+    
+    This software is provided by the copyright holder and contributors "AS IS"
+    and any warranties related to this software are DISCLAIMED.
+    The copyright owner or contributors be NOT LIABLE for any damages caused
+    by use of this software.
