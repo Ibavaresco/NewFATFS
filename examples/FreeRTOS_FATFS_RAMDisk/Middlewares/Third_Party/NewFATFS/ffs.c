@@ -4635,7 +4635,7 @@ static int _open_a( const ffs_char_t *ldn, const ffs_char_t *path, int oflag, in
 		}
 
 	/* Increment 'FFS_CurrentSalt' skipping the zero. */
-	if(( FFS_CurrentSalt = ( FFS_CurrentSalt + 1 ) & (( 1 << ( 8 * sizeof fp->salt - 8 - 1 )) - 1 )) == 0 )
+	if(( FFS_CurrentSalt = ( FFS_CurrentSalt + 1 ) & (( 1 << 7 ) - 1 )) == 0 )
 		FFS_CurrentSalt++;
 
 	fp->salt	= FFS_CurrentSalt;

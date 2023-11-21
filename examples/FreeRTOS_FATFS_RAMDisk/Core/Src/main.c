@@ -50,7 +50,7 @@
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 1024 * 4,
+  .stack_size = 1024 * 8,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -283,101 +283,101 @@ static void Error( int n )
 void StartDefaultTask( void *argument )
 	{
 	/* USER CODE BEGIN 5 */
-	int		MyFile;		/* File object */
-	int		byteswritten, bytesread;									/* File write/read counts */
-	char	wtext[] = "This is an example of RAMDisk with NewFATFS";	/* File write buffer */
-	char	rtext[100];													/* File read buffer */
-	char	DirObj[SizeOfDirObject()];
-	ffs_fileinfo_t	fno;
 
-	/* Infinite loop */
+#if 0
 	while( 1 )
 		{
-#if 1
-		while( 1 )
-			{
-			try
-				{
-				if( mount( "ram", "A:" ) != 0 )
-					throw( 1 );
+		int		MyFile;		/* File object */
+		int		byteswritten, bytesread;									/* File write/read counts */
+		char	wtext[] = "This is an example of RAMDisk with NewFATFS";	/* File write buffer */
+		char	rtext[100];													/* File read buffer */
+		char	DirObj[SizeOfDirObject()];
+		ffs_fileinfo_t	fno;
 
-				setlabel( "A:RAMDISK" );
-				getlabel( "A:", rtext, NULL );
-
-				mkdir( "/xyz", 0 );
-
-				/*##-4- Create and Open a new text file object with write access #####*/
-				if(( MyFile = open( "Test.txt", O_CREAT | O_WRONLY | O_APPEND )) == -1 )
-					throw( 3 );
-
-				mkdir( "/abc", 0 );
-
-				lseek64( MyFile, 0, SEEK_SET );
-
-				//lseek( MyFile, 0, SEEK_END );
-
-				//open( "X.TXT", O_CREAT | O_WRONLY );
-
-				/*##-5- Write data to the text file ################################*/
-				byteswritten = write( MyFile, wtext, strlen( wtext ));
-
-				/*##-6- Close the open text file #################################*/
-				close( MyFile );
-
-				mkdir( "/xyz/uvw", 0 );
-
-				if( byteswritten <= 0 )
-					throw( 4 );
-
-				/*##-7- Open the text file object with read access ###############*/
-				if(( MyFile = open( "Test.txt", O_RDONLY )) == -1 )
-					throw( 5 );
-
-				/*##-8- Read data from the text file ###########################*/
-				bytesread = read( MyFile, rtext, sizeof( rtext ));
-
-				/*##-9- Close the open text file #############################*/
-				close( MyFile );
-
-				if( bytesread <= 0 )
-					throw( 6 );
-
-				opendir( &DirObj, "A:\\" );
-				while( readdir( &DirObj, &fno ) > 0 )
-					{}
-				closedir( &DirObj );
-
-				unlink( "A:Test.bak" );
-				rename( "A:Test.txt", "Test.bak" );
-
-				/*##-10- Compare read data with the expected data ############*/
-				if( bytesread != byteswritten )
-					throw( 7 );
-				}
-			catch( int __excode )
-				{
-				Error( __excode );
-				}
-
-			umount( "A:", 0 );
-			}
-
-#else
-		(void)rtext;
-		(void)wtext;
-		(void)bytesread;
-		(void)byteswritten;
-		(void)MyFile;
 		try
 			{
 			if( mount( "ram", "A:" ) != 0 )
 				throw( 1 );
 
+			setlabel( "A:RAMDISK" );
+			getlabel( "A:", rtext, NULL );
+
+			mkdir( "/xyz", 0 );
+
+			/*##-4- Create and Open a new text file object with write access #####*/
+			if(( MyFile = open( "Test.txt", O_CREAT | O_WRONLY | O_APPEND )) == -1 )
+				throw( 3 );
+
+			mkdir( "/abc", 0 );
+
+			lseek64( MyFile, 0, SEEK_SET );
+
+			//lseek( MyFile, 0, SEEK_END );
+
+			//open( "X.TXT", O_CREAT | O_WRONLY );
+
+			/*##-5- Write data to the text file ################################*/
+			byteswritten = write( MyFile, wtext, strlen( wtext ));
+
+			/*##-6- Close the open text file #################################*/
+			close( MyFile );
+
+			mkdir( "/xyz/uvw", 0 );
+
+			if( byteswritten <= 0 )
+				throw( 4 );
+
+			/*##-7- Open the text file object with read access ###############*/
+			if(( MyFile = open( "Test.txt", O_RDONLY )) == -1 )
+				throw( 5 );
+
+			/*##-8- Read data from the text file ###########################*/
+			bytesread = read( MyFile, rtext, sizeof( rtext ));
+
+			/*##-9- Close the open text file #############################*/
+			close( MyFile );
+
+			if( bytesread <= 0 )
+				throw( 6 );
+
+			opendir( &DirObj, "A:\\" );
+			while( readdir( &DirObj, &fno ) > 0 )
+				{}
+			closedir( &DirObj );
+
+			unlink( "A:Test.bak" );
+			rename( "A:Test.txt", "Test.bak" );
+
+			/*##-10- Compare read data with the expected data ############*/
+			if( bytesread != byteswritten )
+				throw( 7 );
+			}
+		catch( int __excode )
+			{
+			Error( __excode );
+			}
+
+		umount( "A:", 0 );
+		}
+
+#else
+	while( 1 )
+		{
+		try
+			{
 			FILE	*f;
-			if(( f = fopen( "TestFile.txt", "rb+" )) == NULL )
+			int		v = 0;
+			int		fd;
+
+			if( mount( "ram", "A:" ) != 0 )
+				throw( 1 );
+
+			fd = open( "TestFile.txt", O_CREAT | O_WRONLY | O_APPEND );
+			close( fd );
+
+			if(( f = fopen( "TestFile.txt", "r+" )) == NULL )
 				throw( 2 );
 
-			int	v = 0;
 			while( fscanf( f, "%d", &v ) > 0 )
 				{
 				fscanf( f, "," );
@@ -393,10 +393,10 @@ void StartDefaultTask( void *argument )
 			{
 			Error( __excode );
 			}
-#endif
 
 		umount( "A:", 0 );
 		}
+#endif
 
 	/* USER CODE END 5 */
 	}
