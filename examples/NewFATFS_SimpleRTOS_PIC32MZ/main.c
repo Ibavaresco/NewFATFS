@@ -126,6 +126,9 @@ __attribute__(( aligned( 16 )))
 #endif	/*	defined __DEBUG */
 uint8_t     Stacks[MAX_TASKS][STACK_SIZE];
 /*============================================================================*/
+static const char	FileName[]	= "Test.txt";
+/*============================================================================*/
+#if 0
 static int ProcessC( int fd, char *Buff, int BuffLen )
 	{
 	static const char	Msg[]	= "NewFATFS test on PIC32MZ2048 with SimpleRTOS";
@@ -184,6 +187,7 @@ static int Process( void )
 
 	return result;
 	}
+#endif
 /*============================================================================*/
 int Process2( void )
 	{
@@ -218,23 +222,58 @@ static int format( const char *pdname )
 	return mkfs( pdname, NULL, Buff, sizeof Buff );
 	}
 /*============================================================================*/
+static int T1Helper( int fd )
+	{
+	volatile int	len;
+
+	static const char Msg[]	= "Task1 was here!\r\n";
+
+	len	= write( fd, Msg, sizeof Msg - 1 );
+	}
+/*============================================================================*/
 static void Task1( void *p )
     {
 	FFS_AttachDrive( "ramd", NULL, &RAMDisk_Driver );
 	format( "ramd" );
+	mount( "ramd", "A:" );
+
     while( 1 )
         {
-		Process();
+		int	fd;
+
+		while(( fd = open( FileName, O_RDWR | O_APPEND, ACCESS_ALLOW_APPEND )) == -1 )
+			vSleep( 1 );
+		
+		T1Helper( fd );
+		
+		close( fd );
 
         vSleep( 1 );
         }
     }
 /*============================================================================*/
+static int T2Helper( int fd )
+	{
+	static const char	Msg[]	= "Task2 was here!\r\n";
+	volatile int		len;
+
+	len = write( fd, Msg, sizeof Msg - 1 );
+	}
+/*============================================================================*/
 static void Task2( void *p )
     {
     while( 1 )
         {
-        vSleep( 2 );
+		int	fd;
+
+		while(( fd = open( FileName, O_RDWR | O_CREAT | O_APPEND, ACCESS_ALLOW_APPEND )) == -1 )
+			vSleep( 1 );
+
+		T2Helper( fd );
+
+        vSleep( 1 );
+
+		close( fd );
         }
     }
 /*============================================================================*/
@@ -242,7 +281,19 @@ static void Task3( void *p )
     {
     while( 1 )
         {
-        vSleep( 3 );
+		volatile int	len;
+		char			Buff[128];
+		int				fd;
+
+		while(( fd = open( FileName, O_RDONLY, ACCESS_ALLOW_APPEND )) == -1 )
+			vSleep( 1 );
+
+		while(( len = read( fd, Buff, sizeof Buff )) > 0 )
+	        vSleep( 1 );
+
+		vSleep( 1 );
+
+		close( fd );
         }
     }
 /*============================================================================*/

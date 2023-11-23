@@ -23,6 +23,9 @@ const ffs_diskio_t	RAMDisk_Driver =
 /*============================================================================*/
 #if			!defined __DEBUG
 static 
+#else	/*	!defined __DEBUG */
+/* Aligning to a 16-byte boundary just for convenience during debugging. */
+__attribute__(( aligned( 16 )))
 #endif	/*	!defined __DEBUG */
 uint8_t	RAMDisk[RAMDISK_SECTOR_COUNT][RAMDISK_SECTOR_SIZE];
 /*============================================================================*/
