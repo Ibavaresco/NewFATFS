@@ -4430,11 +4430,7 @@ static int _open_b( ffs_volume_t *fs, ffs_file_t *fp, const ffs_char_t *path, in
 		/* We found a matching object, the file is already open... */
 		if( ObjectIndexIsValid( fpobjidx = SearchObject( &dj )))
 			{
-			/* We cannot create an open file... */
-			if( oflag & _FCREAT )
-				return SetErrNo( EACCES, -1 );	//@@@@FIXME: errno value
-
-			/* We will (and must) re-use the same object. */
+			/* ...we will (and must) re-use the same object. */
 			fp->obj	= &FFS_Objects[fpobjidx];
 
 			/* The flags don't allow concurrent access... */

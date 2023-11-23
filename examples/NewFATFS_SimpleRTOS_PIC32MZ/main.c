@@ -164,7 +164,7 @@ static int ProcessB( void )
 	if( getlabel( "A:", Buff, NULL ) != 0 )
 		return -3;
 
-	if(( fd = open( "TEST.TXT", O_RDWR | O_CREAT, 0x15aacba0 )) == -1 )
+	if(( fd = open( "TEST.TXT", O_RDWR | O_CREAT, ACCESS_EXCLUSIVE )) == -1 )
 		return -4;
 
 	result	= ProcessC( fd, Buff, sizeof Buff );
