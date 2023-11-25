@@ -82,7 +82,7 @@ int MutexTake( mutex_t *Mutex, tickcount_t t )
 		/* ... delay or suspend the task (depending on the value of 't').*/
 		if( (signed long)t >= 0 )
 			/* Insert the task into the delayed tasks list.*/
-			InsertTaskInDelayList( CurrentTask, SystemTick + t );
+			InsertTaskInDelayList( CurrentTask, GetTickCount() + t );
 	/*	// This may be useful in the future, but is pointless now.
 		// The task is being suspended for undetermined time...
 		else
@@ -123,7 +123,7 @@ int MutexGive( mutex_t *Mutex, int Release )
 		return 0;
 		}
 
-	if( Mutex->Count > 1 && Release == 0 )
+	if( Mutex->Count > 1 && Release == MUTEX_RELEASE_NORMAL )
 		{
 		RestoreInterrupts( s );
 		return --Mutex->Count;
@@ -192,8 +192,15 @@ int MutexFlush( mutex_t *Mutex, int Mode )
 
 	s	= SaveAndDisableInterrupts();
 
-	if( Mode != 0 && Mutex->Owner == CurrentTask )
+	if( Mode != 0 )
+		{
+		if( Mutex->Owner != NULL && Mutex->Owner != CurrentTask )
+			{
+			RestoreInterrupts( s );
+			return -1;
+			}
 		Mutex->Owner	= NULL;
+		}
 
 	while(( p = Mutex->WaitingList ) != NULL )
 		{

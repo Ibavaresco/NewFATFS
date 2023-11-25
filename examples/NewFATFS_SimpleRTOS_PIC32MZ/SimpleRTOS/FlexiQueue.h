@@ -36,7 +36,7 @@ isaacbavaresco@yahoo.com.br
 /*============================================================================*/
 
 /* In this mode, a higher priority task awaken will only run in the next tick */
-#define	QUEUE_NORMAL			0
+#define	QUEUE_SWITCH_NORMAL		0
 
 /* In this mode, a higher priority task will run immediately when awaken from another task */
 #define	QUEUE_SWITCH_IMMEDIATE	1

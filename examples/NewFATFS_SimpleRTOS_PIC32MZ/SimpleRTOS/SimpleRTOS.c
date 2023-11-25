@@ -34,7 +34,7 @@ isaacbavaresco@yahoo.com.br
 #include "SimpleRTOS.h"
 /*============================================================================*/
 /*
-Points to the head of the unused contexts list. This list is organized as a 
+Points to the head of the list of unused contexts. This list is organized as a
 single-linked linear list.
 */
 /*============================================================================*/
@@ -46,22 +46,22 @@ context_t		*FreeContexts	= NULL;
 
 /*============================================================================*/
 /*
-Index of the highest priority ready tasks list that is not empty.
+Index of the list of ready tasks with highest priority that is not empty.
 */
 /*============================================================================*/
 unsigned int	HighestReadyPriority	= 0;
 
 /*============================================================================*/
 /*
-Points to the head of the delayed tasks contexts list. This list is organized
-as a double-linked linear list.
+Points to the head of the list with the contexts of the delayed tasks . This
+list is organized as a double-linked linear list.
 */
 /*============================================================================*/
 context_t		*DelayedTasks	= NULL;
 
 /*============================================================================*/
 /*
-Points to the currently running task. Sometimes it may not be in any list.
+Points to the context of the currently running task. Sometimes it may not be in any list.
 */
 /*============================================================================*/
 context_t		*CurrentTask	= NULL;
@@ -75,7 +75,7 @@ tickcount_t		SystemTick;
 
 /*============================================================================*/
 /*
-Signals that the running tasks contexts list was already changed by a vSleep.
+Signals that the list with the contexts of the running tasks was already changed by a vSleep.
 */
 /*============================================================================*/
 int				AlreadySwitched	= 0;
@@ -338,6 +338,32 @@ void CheckDelayList( void )
         }
     }
 /*============================================================================*/
+void Switch( void )
+	{
+	ClearTickInterrupt();
+
+	SystemTick++;
+
+	CheckDelayList();
+
+	/* The current task ran for at least one full time slice... */
+	if( AlreadySwitched == 0 && CurrentTask->Priority == HighestReadyPriority )
+		/* ... it doesn't deserve an additional time slice. */
+		ReadyTasks[HighestReadyPriority]
+			= ReadyTasks[HighestReadyPriority]->Next;
+
+	CurrentTask			= ReadyTasks[HighestReadyPriority];
+
+	/*
+	The upcoming task will run from the very beginning of its time slice,
+	at the end of this slice it will be switched off.
+	*/
+	AlreadySwitched		= 0;
+
+    if( TickHook != NULL )
+        TickHook();
+	}
+/*============================================================================*/
 void vSleep( tickcount_t t )
 	{
 	unsigned int		i, Aux;
@@ -383,7 +409,7 @@ void vSleep( tickcount_t t )
     if( (signed long)t >= 0 )
         /* Insert the task into the delayed tasks list.*/
         InsertTaskInDelayList( CurrentTask, SystemTick + t );
-/*    // This may be useful in the future, but is pointless now.
+/*  // This may be useful in the future, but is pointless now.
     // The task is being suspended for undetermined time...
     else
         // ... insert the task into the suspended tasks list.
@@ -524,6 +550,11 @@ int DeleteTask( context_t *Task )
 		}
     }
 /*============================================================================*/
+context_t *GetCurrentTask( void )
+    {
+    return CurrentTask;
+    }
+/*============================================================================*/
 void TaskFinish( void )
 	{
 	DeleteTask( NULL );
@@ -552,7 +583,7 @@ tickcount_t GetTickCount( void )
 	{
 	register intsave_t	s;
 	tickcount_t			t;
-	
+
 	s	= SaveAndDisableInterrupts();
 	t	= SystemTick;
 	RestoreInterrupts( s );

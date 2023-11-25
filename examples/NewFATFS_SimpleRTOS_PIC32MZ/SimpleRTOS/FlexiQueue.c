@@ -113,7 +113,7 @@ int FlexiQueueRead( flexiqueue_t *Queue, void *Ptr, unsigned int BufferSize, tic
 			return 0;
 			}
 
-		DeadLine	= SystemTick + TimeToWait;
+		DeadLine	= GetTickCount() + TimeToWait;
 		CurrentTask->ExtraParameter	= (void*)BufferSize;
 
 #if			!defined QUEUE_STRICT_CHRONOLOGY
@@ -130,7 +130,7 @@ int FlexiQueueRead( flexiqueue_t *Queue, void *Ptr, unsigned int BufferSize, tic
 	        ForceYield();
 	        }
 #if			!defined QUEUE_STRICT_CHRONOLOGY
-		while(( (signed long)TimeToWait < 0 || (signed long)( DeadLine - SystemTick ) > 0 ) && Queue->ItemsAvailable == 0 );
+		while(( (signed long)TimeToWait < 0 || (signed long)( DeadLine - GetTickCount() ) > 0 ) && Queue->ItemsAvailable == 0 );
 #endif	/*	!defined QUEUE_STRICT_CHRONOLOGY */
 
 #if			defined QUEUE_STRICT_CHRONOLOGY
@@ -336,7 +336,7 @@ int FlexiQueueWrite( flexiqueue_t *Queue, const void *Ptr, unsigned int ItemSize
 			return 0;
 			}
 
-		DeadLine	= SystemTick + TimeToWait;
+		DeadLine	= GetTickCount() + TimeToWait;
 		CurrentTask->ExtraParameter	= (void*)ItemSize;
 
 #if			!defined QUEUE_STRICT_CHRONOLOGY
@@ -353,7 +353,7 @@ int FlexiQueueWrite( flexiqueue_t *Queue, const void *Ptr, unsigned int ItemSize
 	        ForceYield();
 	        }
 #if			!defined QUEUE_STRICT_CHRONOLOGY
-		while(( (signed long)TimeToWait < 0 || (signed long)( DeadLine - SystemTick ) > 0 ) && EffectiveSize( ItemSize ) > Queue->BytesFree );
+		while(( (signed long)TimeToWait < 0 || (signed long)( DeadLine - GetTickCount() ) > 0 ) && EffectiveSize( ItemSize ) > Queue->BytesFree );
 #endif	/*	!defined QUEUE_STRICT_CHRONOLOGY */
 
 

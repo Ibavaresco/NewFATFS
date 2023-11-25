@@ -36,7 +36,7 @@ isaacbavaresco@yahoo.com.br
 /*============================================================================*/
 //extern void __attribute__((weak)) TickHook( void );
 /*============================================================================*/
-static void __attribute__((noinline)) Switch( void )
+void __attribute__((noinline)) Switch( void )
 	{
 	SystemTick++;
 
@@ -69,17 +69,25 @@ static void __attribute__((noinline)) Switch( void )
 #define NVIC_SYST_RVR			( *(volatile unsigned long*)0xe000e014 )
 #define NVIC_SYST_CVR			( *(volatile unsigned long*)0xe000e018 )
 
+#define portNVIC_INT_CTRL		((volatile unsigned long *) 0xe000ed04)
+
 #define NVIC_SHPR2				( *(volatile unsigned long*)0xe000ed1c )
-#define NVIC_SHPR2_SVCALL_PRI	(( (unsigned long)((( MAX_SYSCALL_INTERRUPT_PRIORITY - 1 ) << ( 8 - __NVIC_PRIO_BITS )) & 0xff )) << 24 )
+#define NVIC_SHPR3_SVCALL_PRI	( 0ul << 24 )
 
 #define NVIC_SHPR3				( *(volatile unsigned long*)0xe000ed20 )
+#define NVIC_SHPR3_PENDSV_PRI	(( (unsigned long)(( KERNEL_INTERRUPT_PRIORITY << ( 8 - __NVIC_PRIO_BITS )) & 0xff )) << 16 )
 #define NVIC_SHPR3_SYSTICK_PRI	(( (unsigned long)(( KERNEL_INTERRUPT_PRIORITY << ( 8 - __NVIC_PRIO_BITS )) & 0xff )) << 24 )
 
+#define portNVIC_PENDSVSET		0x10000000
 /*============================================================================*/
+
+extern void Bkpt( int );
 
 void __attribute__ ((naked)) SysTick_Handler( void )
 	{
 	SAVE_CONTEXT();
+
+	Bkpt( 4 );
 
 	Switch();
 
@@ -87,9 +95,12 @@ void __attribute__ ((naked)) SysTick_Handler( void )
 	}
 
 /*============================================================================*/
+
 void __attribute__ ((naked)) SVC_Handler( void )
 	{
 	SAVE_CONTEXT();
+
+	Bkpt( 5 );
 
 	CurrentTask	= ReadyTasks[HighestReadyPriority];
 
@@ -104,7 +115,7 @@ void ContextInit( context_t *Context, unsigned char *Stack, unsigned long StackS
 
 	memset( Context, 0x00, sizeof( context_t ));
 
-	StackTop			= (unsigned long *)(( (unsigned long)Stack + StackSize ) & ~7 );
+	StackTop			= (unsigned long*)Stack + StackSize / sizeof( unsigned long );
 
 	/* Registers saved automatically */
 	*--StackTop	= 0x01000000ul;								/* PSR */
@@ -115,6 +126,7 @@ void ContextInit( context_t *Context, unsigned char *Stack, unsigned long StackS
 	*--StackTop	= 0;										/* r2 */
 	*--StackTop	= 0;										/* r1 */
 	*--StackTop	= (unsigned long)Parameter;					/* r0 */
+	*--StackTop	= 0;										/* basepri (r12) */
 	*--StackTop	= 0;										/* r11*/
 	*--StackTop	= 0;										/* r10 */
 	*--StackTop	= 0;										/* r9 */
@@ -124,9 +136,7 @@ void ContextInit( context_t *Context, unsigned char *Stack, unsigned long StackS
 	*--StackTop	= 0;										/* r5 */
 	*--StackTop	= 0;										/* r4 */
 
-	Context->sp						= (unsigned long)StackTop;
-	Context->basepri				= 0;
-	Context->Errno					= 0;
+	Context->sp	= (unsigned long)StackTop;
 
 	Context->Priority				= Priority;
 	Context->TDelay					= 0;
@@ -173,7 +183,7 @@ void InitRTOS( context_t *Contexts, unsigned int Number )
 	/*------------------------------------------------------------------------*/
 	}
 /*============================================================================*/
-static void SetupTimerInterrupt( tickcount_t TickRate )
+void SetupTimerInterrupt( tickcount_t TickRate )
 	{
 	/* Configure SysTick to interrupt at the requested rate. */
 
@@ -184,9 +194,9 @@ static void SetupTimerInterrupt( tickcount_t TickRate )
 /*============================================================================*/
 void __attribute__((noreturn)) StartRTOS( tickcount_t TickRate )
 	{
-	/* Make CallSV and SysTick the same priroity as the kernel. */
-	NVIC_SHPR2	= NVIC_SHPR2_SVCALL_PRI;
-	NVIC_SHPR3	= NVIC_SHPR3_SYSTICK_PRI;
+	/* Make PendSV, CallSV and SysTick the same priroity as the kernel. */
+	NVIC_SHPR2	= NVIC_SHPR3_SVCALL_PRI;
+	NVIC_SHPR3	= NVIC_SHPR3_PENDSV_PRI | NVIC_SHPR3_SYSTICK_PRI;
 
 	SystemTick	= 0;
 	CurrentTask	= ReadyTasks[HighestReadyPriority];
@@ -195,38 +205,24 @@ void __attribute__((noreturn)) StartRTOS( tickcount_t TickRate )
 
 #if			defined USE_PSP
 	__asm volatile(
-		"ldr	r0,=CurrentTask			\n"	/* r0	= &CurrentTask	*/
-		"ldr	r0,[r0]					\n"	/* r0	= CurrentTask		*/
-		"ldr	r1,[r0,#0]				\n"	/* r13	= StackTop		*/
-		"msr	psp,r1					\n"
-
-		"mov	r1,2					\n"
-		"msr	control,r1				\n"
+		"ldr	r0,=0xE000ED08			\n"  /* Use the NVIC offset register to locate the stack. */
+		"ldr	r0,[r0]					\n"
+		"ldr	r0,[r0]					\n"
+		"msr	msp,r0					\n"  /* Set the msp back to the start of the stack. */
 		"isb							\n"
-
-		"ldr	r1,=0xE000ED08			\n"  /* Use the NVIC offset register to locate the stack. */
-		"ldr	r1,[r1]					\n"
-		"ldr	r1,[r1]					\n"
-		"msr	msp,r1					\n"  /* Set the msp back to the start of the stack. */
+		"mov	r0,2					\n"
+		"msr	control,r0				\n"
 		"isb							\n"
-		::: "r1"
-		);
-
-#else	/*	defined USE_PSP */
-
-	asm volatile(
-		"ldr	r0,=CurrentTask			\n"	/* r0	= &CurrentTask	*/
-		"ldr	r0,[r0]					\n"	/* r0	= CurrentTask		*/
-		"ldr	r13,[r0,#0]				\n"	/* r13	= StackTop		*/
 		::: "r0"
 		);
-
 #endif	/*	defined USE_PSP */
 
 	asm volatile(
+		"ldr	r0,=CurrentTask			\n"	/* r0	= &CurrentTask	*/
+		"ldr	r0,[r0]					\n"	/* r0	= CurrentTask		*/
+		"ldr	r13,[r0,0]				\n"	/* r13	= StackTop		*/
 		"ldmia	r13!,{r4-r11}			\n"
-		"ldr	r12,[r0,#4]				\n"
-		"msr	basepri,r12				\n"
+		"add	r13,#4					\n"
 		"ldmia	r13!,{r0-r3,r12,r14}	\n"
 		"add	r13,#8					\n"
 		"ldr	r15,[r13,-8]			\n"

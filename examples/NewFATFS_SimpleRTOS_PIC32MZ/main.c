@@ -8,6 +8,99 @@
 #include <ffs.h>
 #include <ram_diskio.h>
 /*============================================================================*/
+#if 1
+/*============================================================================*/
+// PIC32MK1024MCF100 Configuration Bit Settings
+
+// 'C' source line config statements
+
+// DEVCFG3
+#pragma config USERID		= 0xFFFF			// Enter Hexadecimal value (Enter Hexadecimal value)
+#pragma config PWMLOCK		= OFF				// PWM IOxCON lock (PWM IOxCON register writes accesses are not locked or protected)
+#pragma config FUSBIDIO2	= OFF				// USB2 USBID Selection (USBID pin is controlled by the port function)
+#pragma config FVBUSIO2		= OFF				// USB2 VBUSON Selection bit (VBUSON pin is controlled by the port function)
+#pragma config PGL1WAY		= OFF				// Permission Group Lock One Way Configuration bit (Allow multiple reconfigurations)
+#pragma config PMDL1WAY		= OFF				// Peripheral Module Disable Configuration (Allow multiple reconfigurations)
+#pragma config IOL1WAY		= OFF				// Peripheral Pin Select Configuration (Allow multiple reconfigurations)
+#pragma config FUSBIDIO1	= OFF				// USB1 USBID Selection (USBID pin is controlled by the port function)
+#pragma config FVBUSIO1		= OFF				// USB2 VBUSON Selection bit (VBUSON pin is controlled by the port function)
+
+// DEVCFG2
+#pragma config FPLLIDIV		= DIV_1				// System PLL Input Divider (1x Divider)
+#pragma config FPLLRNG		= RANGE_5_10_MHZ	// System PLL Input Range (5-10 MHz Input)
+#pragma config FPLLICLK		= PLL_POSC			// System PLL Input Clock Selection (POSC is input to the System PLL)
+#pragma config FPLLMULT		= MUL_60			// System PLL Multiplier (PLL Multiply by 60)
+#pragma config FPLLODIV		= DIV_4				// System PLL Output Clock Divider (4x Divider)
+
+#if			defined __32MK1024MCF100__
+
+#pragma config VBATBOREN	= OFF				// VBAT BOR Enable (Disable ZPBOR during VBAT Mode)
+#pragma config DSBOREN		= OFF				// Deep Sleep BOR Enable (Disable ZPBOR during Deep Sleep Mode)
+#pragma config DSWDTPS		= DSPS32			// Deep Sleep Watchdog Timer Postscaler (1:2^36)
+#pragma config DSWDTOSC		= LPRC				// Deep Sleep WDT Reference Clock Selection (Select LPRC as DSWDT Reference clock)
+#pragma config DSWDTEN		= OFF				// Deep Sleep Watchdog Timer Enable (Enable DSWDT during Deep Sleep Mode)
+#pragma config FDSEN		= ON				// Deep Sleep Enable (Enable DSEN bit in DSCON)
+
+#endif	/*	defined __32MK1024MCF100__ */
+
+
+#pragma config BORSEL		= HIGH				// Brown-out trip voltage (BOR trip voltage 2.1v (Non-OPAMP deviced operation))
+#pragma config UPLLEN		= OFF				// USB PLL Enable (USB PLL Disabled)
+
+// DEVCFG1
+#pragma config FNOSC		= SPLL				// Oscillator Selection Bits (Low Power RC Osc (LPRC))
+#pragma config DMTINTV		= WIN_127_128		// DMT Count Window Interval (Window/Interval value is 127/128 counter value)
+#pragma config FSOSCEN		= OFF				// Secondary Oscillator Enable (Disable Secondary Oscillator)
+#pragma config IESO			= ON				// Internal/External Switch Over (Enabled)
+#pragma config POSCMOD		= HS				// Primary Oscillator Configuration (HS osc mode)
+#pragma config OSCIOFNC		= OFF				// CLKO Output Signal Active on the OSCO Pin (Disabled)
+#pragma config FCKSM		= CSECME			// Clock Switching and Monitor Selection (Clock Switch Enabled, FSCM Enabled)
+#pragma config WDTPS		= PS1048576			// Watchdog Timer Postscaler (1:1048576)
+#pragma config WDTSPGM		= STOP				// Watchdog Timer Stop During Flash Programming (WDT stops during Flash programming)
+#pragma config WINDIS		= NORMAL			// Watchdog Timer Window Mode (Watchdog Timer is in non-Window mode)
+#pragma config FWDTEN		= OFF				// Watchdog Timer Enable (WDT Disabled)
+#pragma config FWDTWINSZ	= WINSZ_25			// Watchdog Timer Window Size (Window size is 25%)
+#pragma config DMTCNT		= DMT31				// Deadman Timer Count Selection (2^31 (2147483648))
+#pragma config FDMTEN		= OFF				// Deadman Timer Enable (Deadman Timer is disabled)
+
+// DEVCFG0
+#pragma config DEBUG		= OFF				// Background Debugger Enable (Debugger is disabled)
+#pragma config JTAGEN		= OFF				// JTAG Enable (JTAG Disabled)
+#pragma config ICESEL		= ICS_PGx1			// ICE/ICD Comm Channel Select (Communicate on PGEC1/PGED1)
+#pragma config TRCEN		= OFF				// Trace Enable (Trace features in the CPU are disabled)
+#pragma config BOOTISA		= MIPS32			// Boot ISA Selection (Boot code and Exception code is MIPS32)
+#pragma config FSLEEP		= OFF				// Flash Sleep Mode (Flash is powered down when the device is in Sleep mode)
+#pragma config DBGPER		= PG_ALL			// Debug Mode CPU Access Permission (Allow CPU access to all permission regions)
+#pragma config SMCLR		= MCLR_NORM			// Soft Master Clear Enable (MCLR pin generates a normal system Reset)
+
+#if			defined __32MK1024MCM100__
+
+#pragma config SOSCGAIN		= G2				// Secondary Oscillator Gain Control bits (2x gain setting)
+#pragma config POSCGAIN		= G3				// Primary Oscillator Gain Control bits (Gain Level 3 (highest))
+
+#endif	/*	defined __32MK1024MCM100__ */
+
+#pragma config SOSCBOOST	= ON				// Secondary Oscillator Boost Kick Start Enable bit (Boost the kick start of the oscillator)
+#pragma config POSCBOOST	= ON				// Primary Oscillator Boost Kick Start Enable bit (Boost the kick start of the oscillator)
+#pragma config EJTAGBEN		= NORMAL			// EJTAG Boot Enable (Normal EJTAG functionality)
+
+// DEVCP
+#if			defined __DEBUG
+#pragma config CP			= OFF
+#warning ATENCAO: !!! Modo debug, protecao de codigo desligada !!!
+#else	/*	defined __DEBUG */
+#pragma config CP			= ON
+#endif	/*	defined __DEBUG */
+
+// SEQ
+#pragma config TSEQ			= 0xFFFF			// Boot Flash True Sequence Number (Enter Hexadecimal value)
+#pragma config CSEQ			= 0xFFFF			// Boot Flash Complement Sequence Number (Enter Hexadecimal value)
+
+// #pragma config statements should precede project file includes.
+// Use project enums instead of #define for ON and OFF.
+/*============================================================================*/
+#else
+/*============================================================================*/
 // PIC32MZ2048EFG100 Configuration Bit Settings
 
 // 'C' source line config statements
@@ -30,7 +123,7 @@
 #pragma config UPLLFSEL		= FREQ_24MHZ    // USB PLL Input Frequency Selection (USB PLL input is 24 MHz)
 
 // DEVCFG1
-#pragma config FNOSC		= SPLL             // Oscillator Selection Bits (System PLL)
+#pragma config FNOSC		= FRCDIV             // Oscillator Selection Bits (System PLL)
 #pragma config DMTINTV		= WIN_127_128    // DMT Count Window Interval (Window/Interval value is 127/128 counter value)
 #pragma config FSOSCEN		= OFF            // Secondary Oscillator Enable (Disable SOSC)
 #pragma config IESO			= ON                // Internal/External Switch Over (Enabled)
@@ -46,7 +139,7 @@
 #pragma config FDMTEN		= OFF             // Deadman Timer Enable (Deadman Timer is disabled)
 
 // DEVCFG0
-#pragma config DEBUG		= OFF               // Background Debugger Enable (Debugger is enabled)
+#pragma config DEBUG		= ON               // Background Debugger Enable (Debugger is enabled)
 #pragma config JTAGEN		= OFF             // JTAG Enable (JTAG Disabled)
 #pragma config ICESEL		= ICS_PGx1        // ICE/ICD Comm Channel Select (Communicate on PGEC1/PGED1)
 #pragma config TRCEN		= OFF              // Trace Enable (Trace features in the CPU are disabled)
@@ -70,8 +163,12 @@
 
 // #pragma config statements should precede project file includes.
 // Use project enums instead of #define for ON and OFF.
-
+/*============================================================================*/
+#endif
+/*============================================================================*/
 #include <xc.h>
+
+#include "PortPIC32Internals.h"
 /*============================================================================*/
 int open( const char *buf, long flags, ... )
 	{
@@ -187,7 +284,6 @@ static int Process( void )
 
 	return result;
 	}
-#endif
 /*============================================================================*/
 int Process2( void )
 	{
@@ -214,6 +310,7 @@ int Process2( void )
 	
 	fclose( f );
 	}
+#endif
 /*============================================================================*/
 static int format( const char *pdname )
 	{
@@ -240,14 +337,14 @@ static void Task1( void *p )
     while( 1 )
         {
 		int	fd;
-
+/*
 		while(( fd = open( FileName, O_RDWR | O_APPEND, ACCESS_ALLOW_APPEND )) == -1 )
 			vSleep( 1 );
 		
 		T1Helper( fd );
 		
 		close( fd );
-
+*/
         vSleep( 1 );
         }
     }
@@ -262,18 +359,26 @@ static int T2Helper( int fd )
 /*============================================================================*/
 static void Task2( void *p )
     {
+	static const char	Msg[]	= "Task2 was here!\r\n";
+	volatile int		len;
     while( 1 )
         {
 		int	fd;
 
+        intsave_t   s   = SaveAndDisableInterrupts();
+        
 		while(( fd = open( FileName, O_RDWR | O_CREAT | O_APPEND, ACCESS_ALLOW_APPEND )) == -1 )
 			vSleep( 1 );
 
-		T2Helper( fd );
-
-        vSleep( 1 );
+		while(( len = write( fd, Msg, sizeof Msg - 1 )) > 0 )
+			{}
 
 		close( fd );
+
+        RestoreInterrupts( s );
+
+		while( 1 )
+	        vSleep( 1 );
         }
     }
 /*============================================================================*/
@@ -284,16 +389,16 @@ static void Task3( void *p )
 		volatile int	len;
 		char			Buff[128];
 		int				fd;
-
+/*
 		while(( fd = open( FileName, O_RDONLY, ACCESS_ALLOW_APPEND )) == -1 )
 			vSleep( 1 );
 
 		while(( len = read( fd, Buff, sizeof Buff )) > 0 )
 	        vSleep( 1 );
 
-		vSleep( 1 );
-
 		close( fd );
+*/
+		vSleep( 1 );
         }
     }
 /*============================================================================*/

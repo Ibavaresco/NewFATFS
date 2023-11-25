@@ -85,7 +85,7 @@ int SemaphoreP( semaphore_t *Semaphore, unsigned RequestedCount, tickcount_t t )
 		/* ... delay or suspend the task (depending on the value of 't').*/
 		if( (signed long)t >= 0 )
 			/* Insert the task into the delayed tasks list.*/
-			InsertTaskInDelayList( CurrentTask, SystemTick + t );
+			InsertTaskInDelayList( CurrentTask, GetTickCount() + t );
 		/*
 		// This may be useful in the future, but is pointless now.
 		// The task is being suspended for undetermined time...

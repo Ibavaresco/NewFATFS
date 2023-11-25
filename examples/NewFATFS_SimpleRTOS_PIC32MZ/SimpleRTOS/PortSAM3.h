@@ -37,7 +37,6 @@ typedef unsigned long	tickcount_t;
 typedef struct
 	{
 	unsigned long	sp;
-	unsigned long	basepri;
 
 	unsigned long	Errno;
 

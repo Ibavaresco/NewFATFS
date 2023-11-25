@@ -74,7 +74,7 @@ int QueueRead( queue_t *Queue, void *Ptr, tickcount_t TimeToWait )
 			return 0;
 			}
 	
-		DeadLine	= SystemTick + TimeToWait;
+		DeadLine	= GetTickCount() + TimeToWait;
 
 #if			!defined QUEUE_STRICT_CHRONOLOGY
 		do
@@ -90,7 +90,7 @@ int QueueRead( queue_t *Queue, void *Ptr, tickcount_t TimeToWait )
 			ForceYield();
 			}
 #if			!defined QUEUE_STRICT_CHRONOLOGY
-		while(( (signed long)TimeToWait < 0 || (signed long)( DeadLine - SystemTick ) > 0 ) && Queue->ItemsAvailable == 0 );
+		while(( (signed long)TimeToWait < 0 || (signed long)( DeadLine - GetTickCount() ) > 0 ) && Queue->ItemsAvailable == 0 );
 #endif	/*	!defined QUEUE_STRICT_CHRONOLOGY */
 
 #if			defined QUEUE_STRICT_CHRONOLOGY
@@ -212,7 +212,7 @@ int QueueWrite( queue_t *Queue, const void *Ptr, tickcount_t TimeToWait )
 			return 0;
 			}
 
-		DeadLine	= SystemTick + TimeToWait;
+		DeadLine	= GetTickCount() + TimeToWait;
 
 #if			!defined QUEUE_STRICT_CHRONOLOGY
 		do
@@ -228,7 +228,7 @@ int QueueWrite( queue_t *Queue, const void *Ptr, tickcount_t TimeToWait )
 	        ForceYield();
 	        }
 #if			!defined QUEUE_STRICT_CHRONOLOGY
-		while(( (signed long)TimeToWait < 0 || (signed long)( DeadLine - SystemTick ) > 0 ) && Queue->ItemsAvailable >= Queue->QueueLength );
+		while(( (signed long)TimeToWait < 0 || (signed long)( DeadLine - GetTickCount() ) > 0 ) && Queue->ItemsAvailable >= Queue->QueueLength );
 #endif	/*	!defined QUEUE_STRICT_CHRONOLOGY */
 
 

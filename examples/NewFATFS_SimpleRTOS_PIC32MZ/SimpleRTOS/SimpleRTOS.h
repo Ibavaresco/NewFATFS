@@ -50,9 +50,10 @@ void			vSleep				( tickcount_t t );
 context_t		*CreateTask			( unsigned char *Stack, unsigned long StackSize, void *Parameter, void (*TaskFunc)( void* ), unsigned int Priority, void *FPUContext );
 int				ResumeTask			( context_t *Task );
 int				DeleteTask			( context_t *Task );
+context_t		*GetCurrentTask		( void );
 tickcount_t		GetTickCount		( void );
 int				ChangeTaskPriority	( context_t *Task, unsigned int NewPriority );
-int             RTOSIsRunning       ( void );
+int				RTOSIsRunning		( void );
 /*============================================================================*/
 #endif  /*  !defined __SIMPLERTOS_H__ */
 /*============================================================================*/

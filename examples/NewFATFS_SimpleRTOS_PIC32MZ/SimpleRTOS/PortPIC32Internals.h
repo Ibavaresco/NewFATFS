@@ -32,22 +32,26 @@ isaacbavaresco@yahoo.com.br
 #if			!defined __PORTPIC32INTERNALS_H__
 #define __PORTPIC32INTERNALS_H__
 /*============================================================================*/
+#define KERNEL_INTERRUPT_PRIORITY		0x01
+#define MAX_SYSCALL_INTERRUPT_PRIORITY	0x04
+#define IPL_SHIFT						( 10UL )
+#define ALL_IPL_BITS					( 0x3fUL << IPL_SHIFT )
+/*============================================================================*/
+#define	USE_CORE_TIMER                  0
+/*============================================================================*/
+#if         !defined __ASSEMBLER__
+/*============================================================================*/
 #include <p32xxxx.h>
 #include "SimpleRTOS.h"
 /*============================================================================*/
 typedef unsigned long	intsave_t;
-/*============================================================================*/
-#define KERNEL_INTERRUPT_PRIORITY		0x01
-#define MAX_SYSCALL_INTERRUPT_PRIORITY	0x03
-#define IPL_SHIFT						(10UL)
-#define ALL_IPL_BITS					(0x3fUL<<IPL_SHIFT)
 /*============================================================================*/
 static inline intsave_t __attribute((always_inline)) SaveAndDisableInterrupts( void )
 	{
 	register intsave_t	Status;
 
 	Status	 = _CP0_GET_STATUS();
-	_CP0_SET_STATUS(( Status & ~ALL_IPL_BITS ) | ( MAX_SYSCALL_INTERRUPT_PRIORITY << IPL_SHIFT ));
+   	_CP0_SET_STATUS(( Status & ~ALL_IPL_BITS ) | ( MAX_SYSCALL_INTERRUPT_PRIORITY << IPL_SHIFT ));
 
 	return Status;
 	}
@@ -59,6 +63,30 @@ static inline void __attribute((always_inline)) RestoreInterrupts( intsave_t Sta
 /*============================================================================*/
 void HigherPriorityAwakened	( void );
 void ForceYield				( void );
+void SaveFP                 ( fpucontext_t * );
+void RestoreFP              ( fpucontext_t * );
+void RestoreContext         ( void );
+/*============================================================================*/
+#define CallInterruptHandler(name)          \
+	asm volatile(                           \
+		".extern	SaveContext		\r\n"   \
+		".extern	RestoreContext	\r\n"   \
+		".extern "	#name          "\r\n"   \
+                                            \
+		"addiu		$sp,$sp,-8		\r\n"   \
+		"sw			$ra,4($sp)		\r\n"   \
+                                            \
+		"jal		SaveContext		\r\n"   \
+		"nop						\r\n"   \
+                                            \
+        "jal "      #name         "\r\n"   \
+		"nop						\r\n"   \
+                                            \
+		"j			RestoreContext	\r\n"   \
+		"nop						\r\n"   \
+		);
+/*============================================================================*/
+#endif  /*  !defined __ASSEMBLER__ */
 /*============================================================================*/
 #endif	/*	!defined __PORTPIC32INTERNALS_H__ */
 /*============================================================================*/

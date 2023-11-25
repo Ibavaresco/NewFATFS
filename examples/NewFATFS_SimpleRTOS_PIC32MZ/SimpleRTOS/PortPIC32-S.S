@@ -31,7 +31,7 @@ isaacbavaresco@yahoo.com.br
 /*============================================================================*/
 #if		defined __XC32__ || defined __C32_VERSION__
 /*============================================================================*/
-#define MAX_SYSCALL_INTERRUPT_PRIORITY	0x03
+#include "PortPIC32Internals.h"
 /*============================================================================*/
 #include <p32xxxx.h>
 #include <sys/asm.h>
@@ -52,87 +52,96 @@ isaacbavaresco@yahoo.com.br
 
 SaveContext:	sw		s0,0(sp)
 
-#if	    defined __PIC32MZ__
-		addiu		sp,sp,-(40*4)
-#else	/*  defined __PIC32MZ__ */
-		addiu		sp,sp,-(34*4)
-#endif	/*  defined __PIC32MZ__ */
+SaveContext2:	lw		s0,CurrentTask
 
-		sw		s1,64(sp)
+		sw		s1,64(s0)
+		sw		s2,68(s0)
 
-		mfc0		s0,_CP0_EPC
-		sw		s0, 120(sp)
+		lw		s1,0(sp)
+		sw		s1,60(s0)
+		lw		s1,4(sp)
+		sw		s1,120(s0)
+		addiu		sp,sp,8
 
-		mfc0		s0,_CP0_STATUS
-		sw		s0, 116(sp)
-		ori		s1,zero,MAX_SYSCALL_INTERRUPT_PRIORITY
-		ins		s0,s1,10,9
-		ins		s0,zero,1,4
+		lw		s1,errno
+#if	    defined __PIC32MK__ || defined __PIC32MZ__
+		sw		s1,172(s0)
+#else	/*  defined __PIC32MK__ || defined __PIC32MZ__ */
+		sw		s1,144(s0)
+#endif	/*  defined __PIC32MK__ || defined __PIC32MZ__ */
+
+		mfc0		s1,_CP0_EPC
+		sw		s1, 132(s0)
+
+		mfc0		s1,_CP0_STATUS
+		sw		s1, 128(s0)
+		ori		s2,zero,MAX_SYSCALL_INTERRUPT_PRIORITY
+		ins		s1,s2,10,9
+		ins		s1,zero,1,4
 
 		/* Re-enable interrupts */
-		mtc0		s0,_CP0_STATUS
-
-#if	    defined __PIC32MZ__
-		rddsp		s0
-		sw		s0, 156(sp)
-
-		mfhi		s0,$ac3
-		sw		s0, 152(sp)
-		mflo		s0,$ac3
-		sw		s0, 148(sp)
-
-		mfhi		s0,$ac2
-		sw		s0, 144(sp)
-		mflo		s0,$ac2
-		sw		s0, 140(sp)
-
-		mfhi		s0,$ac1
-		sw		s0, 136(sp)
-		mflo		s0,$ac1
-		sw		s0, 132(sp)
-#endif	/*  defined __PIC32MZ__ */
-
-		mfhi		s0,$ac0
-		sw		s0, 128(sp)
-		mflo		s0,$ac0
-		sw		s0, 124(sp)
-
-		lw		s0,errno
-		sw		s0, 112(sp)
+		mtc0		s1,_CP0_STATUS
 
 		/* Here the interrups above kernel priority are re-enabled */
 
-		sw		$28,108(sp)
-		sw		$27,104(sp)
-		sw		$26,100(sp)
-		sw		$25, 96(sp)
-		sw		$24, 92(sp)
-		sw		$23, 88(sp)
-		sw		$22, 84(sp)
-		sw		$21, 80(sp)
-		sw		$20, 76(sp)
-		sw		$19, 72(sp)
-		sw		$18, 68(sp)	/* s2 */
-		sw		$17, 64(sp)	/* s1 */
-		sw		$30, 60(sp)	/* fp */
-		sw		$15, 56(sp)
-		sw		$14, 52(sp)
-		sw		$13, 48(sp)
-		sw		$12, 44(sp)
-		sw		$11, 40(sp)
-		sw		$10, 36(sp)
-		sw		 $9, 32(sp)
-		sw		 $8, 28(sp)
-		sw		 $7, 24(sp)
-		sw		 $6, 20(sp)
-		sw		 $5, 16(sp)
-		sw		 $4, 12(sp)
-		sw		 $3,  8(sp)
-		sw		 $2,  4(sp)
-		sw		 $1,  0(sp)
+		sw		 $1,  0(s0)
+		sw		 $2,  4(s0)
+		sw		 $3,  8(s0)
+		sw		 $4, 12(s0)
+		sw		 $5, 16(s0)
+		sw		 $6, 20(s0)
+		sw		 $7, 24(s0)
+		sw		 $8, 28(s0)
+		sw		 $9, 32(s0)
+		sw		$10, 36(s0)
+		sw		$11, 40(s0)
+		sw		$12, 44(s0)
+		sw		$13, 48(s0)
+		sw		$14, 52(s0)
+		sw		$15, 56(s0)
+/*
+		sw		$16, 60(s0)	; s0 and
+		sw		$17, 64(s0)	; s1 were already saved at the very beginning
+		sw		$18, 68(s0)	; s2
+*/
+		sw		$19, 72(s0)
+		sw		$20, 76(s0)
+		sw		$21, 80(s0)
+		sw		$22, 84(s0)
+		sw		$23, 88(s0)
+		sw		$24, 92(s0)
+		sw		$25, 96(s0)
+		sw		$26,100(s0)
+		sw		$27,104(s0)
+		sw		$28,108(s0)
+		sw		$29,112(s0)
+		sw		$30,116(s0)
+/*		sw		$31,120(s0)	; Already saved */
 
-		lw		s0,CurrentTask
-		sw		sp,0(s0)
+		mfhi		s1,$ac0
+		sw		s1, 136(s0)
+		mflo		s1,$ac0
+		sw		s1, 140(s0)
+
+#if	    defined __PIC32MK__ || defined __PIC32MZ__
+		mfhi		s1,$ac1
+		sw		s1, 144(s0)
+		mflo		s1,$ac1
+		sw		s1, 148(s0)
+
+		mfhi		s1,$ac2
+		sw		s1, 152(s0)
+		mflo		s1,$ac2
+		sw		s1, 156(s0)
+
+		mfhi		s1,$ac3
+		sw		s1, 160(s0)
+		mflo		s1,$ac3
+		sw		s1, 164(s0)
+
+		rddsp		s1
+		sw		s1, 168(s0)
+#endif	/*  defined __PIC32MK__ || defined __PIC32MZ__ */
 
 		jr		ra
 		nop
@@ -141,127 +150,158 @@ SaveContext:	sw		s0,0(sp)
 /*============================================================================*/
 	 	.set		noreorder
 		.set 		noat
-		.global		CTInterrupt
+		.global		TickInterrupt
 		.global		RestoreContext
+		.extern		SchedulerSuspended
+		.extern		IFS0CLR
 
- 		.ent		CTInterrupt
+ 		.ent		TickInterrupt
 
-CTInterrupt:	addiu		sp,sp,-8
-		sw		ra,4(sp)
+TickInterrupt:	addiu		sp,sp,-8
+    
+		sw		s0,0(sp)
 
-		jal		SaveContext
+		lw		s0,SchedulerSuspended
+		beqz		s0,1f
+
+  		lui		s0,%hi(SystemTick)
+		sw		s1,4(sp)
+		lw		s1,%lo(SystemTick)(s0)
+		addiu		s1,s1,1
+		sw		s1,%lo(SystemTick)(s0)
+
+		lui		s0,%hi(IFS0CLR)
+#if         !defined USE_CORE_TIMER || USE_CORE_TIMER == 0
+		li		s1,_IFS0_T1IF_MASK	/* Timer1 */
+#else	/*  !defined USE_CORE_TIMER || USE_CORE_TIMER == 0 */
+		li		s1,_IFS0_CTIF_MASK	/* Core Timer */
+#endif	/*  !defined USE_CORE_TIMER || USE_CORE_TIMER == 0 */
+		sw		s1,%lo(IFS0CLR)(s0)
+  
+		lw		s0,0(sp)
+		lw		s1,4(sp)
+
+		addiu		sp,sp,8
+		eret
+    
+1:		sw		ra,4(sp)
+
+		jal		SaveContext2
 		nop
 		/*------------------------------------------------------------*/
 		jal		Switch
 		nop
 		/*------------------------------------------------------------*/
-RestoreContext:	lw		s0,CurrentTask
-		lw		sp,0(s0)
+ 		.end		TickInterrupt
 
-		lw		 $1,  0(sp)
-		lw		 $2,  4(sp)
-		lw		 $3,  8(sp)
-		lw		 $4, 12(sp)
-		lw		 $5, 16(sp)
-		lw		 $6, 20(sp)
-		lw		 $7, 24(sp)
-		lw		 $8, 28(sp)
-		lw		 $9, 32(sp)
-		lw		$10, 36(sp)
-		lw		$11, 40(sp)
-		lw		$12, 44(sp)
-		lw		$13, 48(sp)
-		lw		$14, 52(sp)
-		lw		$15, 56(sp)
-		lw		$30, 60(sp)	/* fp	*/
-/*		lw		$17, 64(sp)	   s1	*/
-/*		lw		$18, 68(sp)	   s2	*/
-		lw		$19, 72(sp)	/* s3	*/
-		lw		$20, 76(sp)
-		lw		$21, 80(sp)
-		lw		$22, 84(sp)
-		lw		$23, 88(sp)
-		lw		$24, 92(sp)
-		lw		$25, 96(sp)
-		lw		$26,100(sp)
-		lw		$27,104(sp)
-		lw		$28,108(sp)
+		.ent		RestoreContext
+RestoreContext:
+		lw		s0,CurrentTask
 
-		la		s2,errno
-		lw		s1, 112(sp)
-		sw		s1,0(s2)
+		lw		 $1,  0(s0)
+		lw		 $2,  4(s0)
+		lw		 $3,  8(s0)
+		lw		 $4, 12(s0)
+		lw		 $5, 16(s0)
+		lw		 $6, 20(s0)
+		lw		 $7, 24(s0)
+		lw		 $8, 28(s0)
+		lw		 $9, 32(s0)
+		lw		$10, 36(s0)
+		lw		$11, 40(s0)
+		lw		$12, 44(s0)
+		lw		$13, 48(s0)
+		lw		$14, 52(s0)
+		lw		$15, 56(s0)
+/*		lw		$16, 60(s0)	; s0 and			*/
+/*		lw		$17, 64(s0)	; s1 will be restored last	*/
+/*		lw		$18, 68(s0)	; s2				*/
+/*		lw		$19, 72(s0)	; s3				*/
+		lw		$20, 76(s0)
+		lw		$21, 80(s0)
+		lw		$22, 84(s0)
+		lw		$23, 88(s0)
+		lw		$24, 92(s0)
+		lw		$25, 96(s0)
+		lw		$26,100(s0)
+		lw		$27,104(s0)
+		lw		$28,108(s0)
+		lw		$29,112(s0)
+		lw		$30,116(s0)
+		lw		$31,120(s0)
 
-		lw		s1, 124(sp)
-		mtlo		s1,$ac0
-		lw		s1, 128(sp)
+		lw		s1, 136(s0)
 		mthi		s1,$ac0
+		lw		s1, 140(s0)
+		mtlo		s1,$ac0
 
-#if	    defined __PIC32MZ__
-		lw		s1, 132(sp)
-		mtlo		s1,$ac1
-		lw		s1, 136(sp)
+#if	    defined __PIC32MK__ || defined __PIC32MZ__
+		lw		s1, 144(s0)
 		mthi		s1,$ac1
+		lw		s1, 148(s0)
+		mtlo		s1,$ac1
 
-		lw		s1, 140(sp)
-		mtlo		s1,$ac2
-		lw		s1, 144(sp)
+		lw		s1, 152(s0)
 		mthi		s1,$ac2
+		lw		s1, 156(s0)
+		mtlo		s1,$ac2
 
-		lw		s1, 148(sp)
-		mtlo		s1,$ac3
-		lw		s1, 152(sp)
+		lw		s1, 160(s0)
 		mthi		s1,$ac3
+		lw		s1, 164(s0)
+		mtlo		s1,$ac3
 
-		lw		s1, 156(sp)
+		lw		s1, 168(s0)
 		wrdsp		s1
-#endif	/*  defined __PIC32MZ__ */
+#endif	/*  defined __PIC32MK__ || defined __PIC32MZ__ */
 
 /* Here we must disable interrups */
 
-#if	    defined __PIC32MZ__ && __PIC32_FEATURE_SET1 == 'F'
+#if	    defined __PIC32MK__ || ( defined __PIC32MZ__ && __PIC32_FEATURE_SET1 == 'F' )
 
-		lw		s1,FPUOwner
-		beq		s0,s1,1f
-		lw		s1, 116(sp)
+		lw		s2,FPUOwner
+		beq		s0,s2,1f
+		lw		s1, 128(s0)
 		ins		s1,zero,29,1
 1:		
 
-#else	/*  defined __PIC32MZ__ && __PIC32_FEATURE_SET1 == 'F' */
-		lw		s1, 116(sp)
-#endif	/*  defined __PIC32MZ__ && __PIC32_FEATURE_SET1 == 'F' */
+#else	/*  defined __PIC32MK__ || ( defined __PIC32MZ__ && __PIC32_FEATURE_SET1 == 'F' ) */
+		lw		s1, 128(s0)
+#endif	/*  defined __PIC32MK__ || ( defined __PIC32MZ__ && __PIC32_FEATURE_SET1 == 'F' ) */
 
 		mtc0		s1,_CP0_STATUS
 
-		lw		s1, 120(sp)
+		lw		s1, 132(s0)
 		mtc0		s1,_CP0_EPC
 
+#if	    defined __PIC32MK__ || defined __PIC32MZ__
+		lw		s1,172(s0)
+#else	/*  defined __PIC32MK__ || defined __PIC32MZ__ */
+		lw		s1,144(s0)
+#endif	/*  defined __PIC32MK__ || defined __PIC32MZ__ */
+		la		s2,errno
+		sw		s1,(s2)
+
+		lw		s3,72(s0)
 		lw		s2,68(s0)
 		lw		s1,64(s0)
-
-#if	    defined __PIC32MZ__
-		addiu		sp,sp,(40*4)
-#else	/*  defined __PIC32MZ__ */
-		addiu		sp,sp,(34*4)
-#endif	/*  defined __PIC32MZ__ */
-
-		lw		s0,0(sp)
-		lw		ra,4(sp)
-
-		addiu		sp,sp,8
+		lw		s0,60(s0)
 
 		eret
 		/*------------------------------------------------------------*/
-		.end		CTInterrupt
+		.end		RestoreContext
 /*============================================================================*/
 		.extern		CurrentTask
 /*============================================================================*/
 		.global		ForceYield
  		.ent		ForceYield
 
-ForceYield:	di		t0
-		ori		t0,t0,3		/* Disable interrupts */
+ForceYield:	mfc0		t0,_CP0_STATUS
+		ori		t0,t0,2		/* Disable interrupts */
 		mtc0		t0,_CP0_STATUS
+		ehb
 		mtc0		ra,_CP0_EPC
+		ehb
 		/*------------------------------------------------------------*/
 		addiu		sp,sp,-8
 		sw		ra,4(sp)
@@ -286,7 +326,7 @@ ForceYield:	di		t0
 #endif	/*  defined __XC32__  || defined __C32_VERSION__ */
 /*============================================================================*/
 
-#if	    defined __PIC32MZ__ && __PIC32_FEATURE_SET1 == 'F'
+#if	    defined __PIC32MK__ || ( defined __PIC32MZ__ && __PIC32_FEATURE_SET1 == 'F' )
 
 		.global		SaveFP
  		.ent		SaveFP
@@ -377,6 +417,6 @@ RestoreFP:	lw	a1,256(a0)
 
 		.end	RestoreFP
 
-#endif	/*  defined __PIC32MZ__ && __PIC32_FEATURE_SET1 == 'F' */
+#endif	/*  defined __PIC32MK__ || ( defined __PIC32MZ__ && __PIC32_FEATURE_SET1 == 'F' ) */
 
 /*============================================================================*/

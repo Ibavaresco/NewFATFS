@@ -32,7 +32,13 @@ isaacbavaresco@yahoo.com.br
 #if			!defined __ATOMIC_H__
 #define __ATOMIC_H__
 /*============================================================================*/
-void    AtomicCopy  ( void *dst, const void *src, size_t size );
+#define ATOMIC_SAVEANDDISABLE   0
+#define ATOMIC_RESTORE          1
+/*============================================================================*/
+void    AtomicCopy		( void *dst, const void *src, size_t size );
+void    AtomicCopyIRQ	( void *dst, const void *src, size_t size, intsave_t (*IntCtrlFunc)( int Operation, intsave_t Argument ) );
+void    AtomicMemSet	( void *dst, int val, size_t size );
+void    AtomicMemSetIRQ	( void *dst, int val, size_t size, intsave_t (*IntCtrlFunc)( int Operation, intsave_t Argument ) );
 /*============================================================================*/
 #endif  /*  !defined __ATOMIC_H__ */
 /*============================================================================*/

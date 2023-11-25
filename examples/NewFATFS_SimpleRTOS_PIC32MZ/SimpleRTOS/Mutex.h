@@ -36,10 +36,26 @@ isaacbavaresco@yahoo.com.br
 /*============================================================================*/
 
 /* In this mode, a higher priority task awaken will only run in the next tick */
-#define	MUTEX_NORMAL			0
+#define	MUTEX_SWITCH_NORMAL		0
 
 /* In this mode, a higher priority task will run immediately when awaken from another task */
 #define	MUTEX_SWITCH_IMMEDIATE	1
+
+/*============================================================================*/
+
+/* Release the mutex in the normal way, decrementing the count and releasing it only if the count reaches zero. */
+#define MUTEX_RELEASE_NORMAL    0
+
+/* Release the mutex forcibly, zeroing the count at once. */
+#define MUTEX_RELEASE_FORCED    1
+
+/*============================================================================*/
+
+/* Flush the mutex's waiting queue only if the task owns it. */
+#define MUTEX_FLUSH_NORMAL      0
+
+/* Flush the mutex's waiting queue unconditionally. */
+#define MUTEX_FLUSH_FORCED      1
 
 /*============================================================================*/
 typedef struct

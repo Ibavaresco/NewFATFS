@@ -282,14 +282,12 @@ void __attribute__((naked)) UART_Handler( void )
 
 #if			SERIAL_PORTS >= 2
 
-extern void __attribute__((weak)) NMEA_RXHandler( void );
-
 static void __attribute__((noinline)) USART_ISR( unsigned int usart )
 	{
 	static Usart * const Usarts[]	= { USART0, USART1, USART2 };
-	uint32_t		Aux;
 	Usart			*u;
 	unsigned long	Status;
+	uint32_t		Aux;
 	int				MustSwitch	= 0;
 	static char		c;
 
@@ -302,19 +300,16 @@ static void __attribute__((noinline)) USART_ISR( unsigned int usart )
 
 	if( Status & US_CSR_RXRDY )
 		{
-		if( usart == 0 && NMEA_RXHandler )
-			NMEA_RXHandler();
-		else
-			while( usart_get_status( u ) & US_CSR_RXRDY )
-				{
-				/* Retrieve the received character and place it in the queue of	
-				received characters. */
-				usart_read( u, &Aux );
-				c	= (unsigned char)Aux;
+		while( usart_get_status( u ) & US_CSR_RXRDY )
+			{
+			/* Retrieve the received character and place it in the queue of	
+			received characters. */
+			usart_read( u, &Aux );
+			c	= (unsigned char)Aux;
 
-				if( QueueWriteFromISR( &QueuesRX[usart+1], &c ) > 1 )
-					MustSwitch	= 1;
-				}
+			if( QueueWriteFromISR( &QueuesRX[usart+1], &c ) > 1 )
+				MustSwitch	= 1;
+			}
 		}
 
     /* Are any Tx interrupts pending? */
@@ -343,6 +338,7 @@ static void __attribute__((noinline)) USART_ISR( unsigned int usart )
 	if( MustSwitch )
 		CurrentTask	= ReadyTasks[HighestReadyPriority];
 	}
+
 /*============================================================================*/
 void __attribute__((naked)) USART0_Handler( void )
 	{
@@ -352,12 +348,12 @@ void __attribute__((naked)) USART0_Handler( void )
 
 	RESTORE_CONTEXT();
 	}
+
 #endif	/*	SERIAL_PORTS >= 2 */
 
 /*============================================================================*/
 
 #if			SERIAL_PORTS >= 3
-#if			!defined VARIABLE_RATE
 
 void __attribute__((naked)) USART1_Handler( void )
 	{
@@ -367,7 +363,6 @@ void __attribute__((naked)) USART1_Handler( void )
 
 	RESTORE_CONTEXT();
 	}
-#endif	/*	!defined VARIABLE_RATE */
 	
 #endif	/*	SERIAL_PORTS >= 3 */
 

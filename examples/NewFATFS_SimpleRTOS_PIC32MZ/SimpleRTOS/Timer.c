@@ -183,13 +183,16 @@ int	StopTimer( srtos_timer_t *Timer )
 /*============================================================================*/
 int CheckTimers( srtos_timer_t **TimerList )
 	{
+	intsave_t		s;
 	srtos_timer_t	*p;
 
 	if( TimerList == NULL )
 		return -1;
 
+	s		= SaveAndDisableInterrupts();
+
     /* The timers list is not empty...*/
-    while( ( p = *TimerList ) != NULL && (signed long)( p->TickToTrigger - SystemTick ) <= 0 )
+    while( ( p = *TimerList ) != NULL && (signed long)( p->TickToTrigger - GetTickCount() ) <= 0 )
 		{
 		/* Remove the timer from the timers list.*/
 		RemoveTimerFromList( p );
@@ -201,12 +204,18 @@ int CheckTimers( srtos_timer_t **TimerList )
 
 		if( p->Cycles != 0 )
 			/* Insert the timer at the end of the running timers list.*/
-			InsertTimerInList( TimerList, p, SystemTick + p->Periodicity );
+			InsertTimerInList( TimerList, p, GetTickCount() + p->Periodicity );
 		}
 
 	if( *TimerList == NULL )
+		{
+		RestoreInterrupts( s );
 		return 0;
+		}
 	else
+		{
+		RestoreInterrupts( s );
 		return 1;
+		}
 	}
 /*============================================================================*/

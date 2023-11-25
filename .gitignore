@@ -1,0 +1,10 @@
+.generated_files
+build
+debug
+dist
+private
+/examples/NewFATFS_SimpleRTOS_PIC32MZ/NewFATFS_SimpleRTOS_PIC32MZ.X/nbproject/Makefile-impl.mk
+/examples/NewFATFS_SimpleRTOS_PIC32MZ/NewFATFS_SimpleRTOS_PIC32MZ.X/nbproject/Makefile-local-default.mk
+/examples/NewFATFS_SimpleRTOS_PIC32MZ/NewFATFS_SimpleRTOS_PIC32MZ.X/nbproject/Makefile-variables.mk
+/examples/NewFATFS_SimpleRTOS_PIC32MZ/NewFATFS_SimpleRTOS_PIC32MZ.X/nbproject/Makefile-default.mk
+/examples/NewFATFS_SimpleRTOS_PIC32MZ/NewFATFS_SimpleRTOS_PIC32MZ.X/nbproject/Makefile-genesis.properties

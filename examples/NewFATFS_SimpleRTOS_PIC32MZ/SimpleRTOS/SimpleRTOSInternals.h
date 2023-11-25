@@ -52,6 +52,8 @@ int		InsertTaskInReadyTasksList	( context_t *Task );
 void	InsertTaskInDelayList		( context_t *Task, tickcount_t Time );
 void	RemoveTaskFromDelayList		( context_t *Task );
 void	RemoveTaskFromAllLists		( context_t *Task );
+void    ClearTickInterrupt          ( void );
+
 void    ContextInit                 ( context_t *Context, unsigned char *Stack, unsigned long StackSize, void *Parameter, void (*TaskFunc)( void* ), unsigned int Priority, void *FPUContext );
 void	TaskFinish					( void );
 /*============================================================================*/

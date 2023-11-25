@@ -59,28 +59,27 @@ typedef unsigned long	intsave_t;
 		"msr	basepri,r0					\n"									\
 																				\
 		"mrs	r1,psp						\n"									\
-		"isb								\n"									\
-		"stmdb	r1!,{r4-r11}				\n"	/* Save the remaining registers. */	\
+		"isb								\n"		\
+		"stmdb	r1!,{r4-r12}				\n"	/* Save the remaining registers. */	\
 																				\
-		"ldr	r2,=CurrentTask				\n"	/*	r2	= &CurrentTask		*/	\
-		"ldr	r0, [r2]					\n"	/*	r0	 = CurrentTask		*/	\
-		"str	r1, [r0,#0]					\n"	/*	CurrentTask->sp = sp		*/	\
-		"str	r12,[r0,#4]					\n"									\
+		"ldr	r0,=CurrentTask				\n"	/*	r0	= &CurrentTask		*/	\
+		"ldr	r0,[r0]						\n"	/*	r0	 = CurrentTask		*/	\
+		"str	r1, [r0]					\n"	/*	CurrentTask->sp = sp		*/	\
 																				\
-		"stmdb	r13!,{r2,r14}				\n"									\
+		"stmdb	r13!,{r14}					\n"									\
 																				\
 		:: "i"(( MAX_SYSCALL_INTERRUPT_PRIORITY << ( 8 - __NVIC_PRIO_BITS )) & 0xff ) : "r0"	\
 		);
 
 #define RESTORE_CONTEXT()														\
 	__asm volatile(																\
-		"ldmia	r13!,{r2,r14}				\n"									\
+		"ldmia	r13!,{r14}					\n"									\
 																				\
-		"ldr	r0, [r2]					\n"	/*	r0	 = CurrentTask		*/	\
-		"ldr	r1, [r0,#0]					\n"	/*	sp	= CurrentTask->sp*/		\
-		"ldr	r12,[r0,#4]					\n"									\
+		"ldr	r0,=CurrentTask				\n"	/*	r0	= &CurrentTask		*/	\
+		"ldr	r0,[r0]						\n"	/*	r0	 = CurrentTask		*/	\
+		"ldr	r1,[r0]						\n"	/*	sp	= CurrentTask->sp*/		\
 																				\
-		"ldmia	r1!,{r4-r11}				\n"  /* Load the remaining registers. */	\
+		"ldmia	r1!,{r4-r12}				\n"  /* Load the remaining registers. */	\
 		"msr	psp,r1						\n"									\
 		"isb								\n"									\
 																				\
@@ -98,27 +97,26 @@ typedef unsigned long	intsave_t;
 		"mov	r0,%0						\n"									\
 		"msr	basepri,r0					\n"									\
 																				\
-		"stmdb	r13!, {r4-r11}				\n"	/* Save the remaining registers. */	\
+		"stmdb	r13!, {r4-r12}				\n"	/* Save the remaining registers. */	\
 																				\
-		"ldr	r2,=CurrentTask				\n"	/*	r2	= &CurrentTask		*/	\
-		"ldr	r0,  [r2]					\n"	/*	r1	 = CurrentTask		*/	\
-		"str	r13, [r0,#0]				\n"	/*	CurrentTask->sp = sp		*/	\
-		"str	r12, [r0,#4]				\n"									\
+		"ldr	r0,=CurrentTask				\n"	/*	r0	= &CurrentTask		*/	\
+		"ldr	r0, [r0]					\n"	/*	r1	 = CurrentTask		*/	\
+		"str	r13, [r0]					\n"	/*	CurrentTask->sp = sp		*/	\
 																				\
-		"stmdb	r13!,{r2,r14}				\n"									\
+		"stmdb	r13!,{r14}					\n"									\
 																				\
 		:: "i"(( MAX_SYSCALL_INTERRUPT_PRIORITY << ( 8 - __NVIC_PRIO_BITS )) & 0xff ) : "r0"	\
 		);
 
 #define RESTORE_CONTEXT()														\
 	__asm volatile(																\
-		"ldmia	r13!,{r2,r14}				\n"									\
+		"ldmia	r13!,{r14}					\n"									\
 																				\
-		"ldr	r0, [r2]					\n"	/*	r0	 = CurrentTask	*/		\
-		"ldr	r13,[r0,#0]					\n"	/*	sp	= CurrentTask->sp*/		\
-		"ldr	r12,[r0,#4]					\n"									\
+		"ldr	r0,=CurrentTask				\n"	/*	r0	= &CurrentTask	*/		\
+		"ldr	r0, [r0]					\n"	/*	r0	 = CurrentTask	*/		\
+		"ldr	r13,[r0]					\n"	/*	sp	= CurrentTask->sp*/		\
 																				\
-		"ldmia	r13!, {r4-r11}				\n"  /* Load the remaining registers. */	\
+		"ldmia	r13!, {r4-r12}				\n"  /* Load the remaining registers. */	\
 																				\
 		"msr	basepri,r12					\n"									\
 																				\

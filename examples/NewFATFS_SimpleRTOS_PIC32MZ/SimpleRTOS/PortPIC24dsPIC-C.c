@@ -35,6 +35,8 @@ isaacbavaresco@yahoo.com.br
 #include "PortPIC24dsPIC.h"
 #include "SimpleRTOSInternals.h"
 /*============================================================================*/
+void TickHook( void );
+/*============================================================================*/
 static void Switch( void )
 	{
 	IFS0bits.T1IF	= 0; 	/* clear the interrupt flag */
@@ -199,7 +201,7 @@ void __attribute__((naked)) SaveContext( void )
 		"mov.w		[W15-8],W0			\n"
 		"mov.w		W0,[W4+46]			\n"
 
-		"sub.w		W15,#4,W0			\n"
+		"sub.w		W15,#8,W0			\n"
 		"mov.w		W0,[W4+30]			\n"
 
 		"mov.w		SPLIM,W0			\n"
@@ -503,7 +505,7 @@ void __attribute__((noreturn)) StartRTOS( tickcount_t TickPeriod )
 	SR			   |= 0x00e0;
 
 	INTCON1			= 0x0000;
-	INTCON2			= 0x0000;
+	INTCON2			= 0x8000;
 
 	RestoreContext();
 

@@ -40,3 +40,28 @@ void AtomicCopy( void *dst, const void *src, size_t size )
     RestoreInterrupts( s );
     }
 /*============================================================================*/
+void AtomicCopyIRQ( void *dst, const void *src, size_t size, intsave_t (*IntCtrlFunc)( int Operation, intsave_t Argument ))
+    {
+    intsave_t   s   = SaveAndDisableInterrupts();
+	intsave_t   i	= IntCtrlFunc( ATOMIC_SAVEANDDISABLE, 0 );
+    memmove( dst, src, size );
+	IntCtrlFunc( ATOMIC_RESTORE, i );
+    RestoreInterrupts( s );
+    }
+/*============================================================================*/
+void AtomicMemSet( void *dst, int val, size_t size )
+	{
+    intsave_t   s   = SaveAndDisableInterrupts();
+    memset( dst, val, size );
+    RestoreInterrupts( s );
+	}
+/*============================================================================*/
+void AtomicMemSetIRQ( void *dst, int val, size_t size, intsave_t (*IntCtrlFunc)( int Operation, intsave_t Argument ))
+	{
+    intsave_t   s   = SaveAndDisableInterrupts();
+	intsave_t   i	= IntCtrlFunc( ATOMIC_SAVEANDDISABLE, 0 );
+    memset( dst, val, size );
+	IntCtrlFunc( ATOMIC_RESTORE, i );
+    RestoreInterrupts( s );
+	}
+/*============================================================================*/

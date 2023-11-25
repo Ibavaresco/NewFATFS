@@ -1,4 +1,89 @@
 /*============================================================================*/
+/*
+    FreeRTOS V7.6.0 - Copyright (C) 2013 Real Time Engineers Ltd. 
+    All rights reserved
+
+    VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
+
+    ***************************************************************************
+     *                                                                       *
+     *    FreeRTOS provides completely free yet professionally developed,    *
+     *    robust, strictly quality controlled, supported, and cross          *
+     *    platform software that has become a de facto standard.             *
+     *                                                                       *
+     *    Help yourself get started quickly and support the FreeRTOS         *
+     *    project by purchasing a FreeRTOS tutorial book, reference          *
+     *    manual, or both from: http://www.FreeRTOS.org/Documentation        *
+     *                                                                       *
+     *    Thank you!                                                         *
+     *                                                                       *
+    ***************************************************************************
+
+    This file is part of the FreeRTOS distribution.
+
+    FreeRTOS is free software; you can redistribute it and/or modify it under
+    the terms of the GNU General Public License (version 2) as published by the
+    Free Software Foundation >>!AND MODIFIED BY!<< the FreeRTOS exception.
+
+    >>! NOTE: The modification to the GPL is included to allow you to distribute
+    >>! a combined work that includes FreeRTOS without being obliged to provide
+    >>! the source code for proprietary components outside of the FreeRTOS
+    >>! kernel.
+
+    FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
+    WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+    FOR A PARTICULAR PURPOSE.  Full license text is available from the following
+    link: http://www.freertos.org/a00114.html
+
+    1 tab == 4 spaces!
+
+    ***************************************************************************
+     *                                                                       *
+     *    Having a problem?  Start by reading the FAQ "My application does   *
+     *    not run, what could be wrong?"                                     *
+     *                                                                       *
+     *    http://www.FreeRTOS.org/FAQHelp.html                               *
+     *                                                                       *
+    ***************************************************************************
+
+    http://www.FreeRTOS.org - Documentation, books, training, latest versions,
+    license and Real Time Engineers Ltd. contact details.
+
+    http://www.FreeRTOS.org/plus - A selection of FreeRTOS ecosystem products,
+    including FreeRTOS+Trace - an indispensable productivity tool, a DOS
+    compatible FAT file system, and our tiny thread aware UDP/IP stack.
+
+    http://www.OpenRTOS.com - Real Time Engineers ltd license FreeRTOS to High
+    Integrity Systems to sell under the OpenRTOS brand.  Low cost OpenRTOS
+    licenses offer ticketed support, indemnification and middleware.
+
+    http://www.SafeRTOS.com - High Integrity Systems also provide a safety
+    engineered and independently SIL3 certified version for use in safety and
+    mission critical applications that require provable dependability.
+
+    1 tab == 4 spaces!
+*/
+/*============================================================================*/
+
+/*============================================================================*/
+/* BASIC INTERRUPT DRIVEN SERIAL PORT DRIVER. 
+
+NOTE:  This driver is primarily to test the scheduler functionality.  It does
+not effectively use the buffers or DMA and is therefore not intended to be
+an example of an efficient driver. */
+/*============================================================================*/
+/*============================================================================*/
+/*============================================================================*/
+/*============================================================================*/
+/*
+
+Note: This file was severely modified from the original FreeRTOS version.
+
+*/
+/*============================================================================*/
+/*============================================================================*/
+/*============================================================================*/
+/*============================================================================*/
 #if			defined __XC16__
 /*============================================================================*/
 /* Standard include file. */
@@ -28,11 +113,13 @@
 
 /* Flag used to indicate the tx status. */
 
-#define	PERIPHERAL_CLOCK_HZ	14745600ul
+#define	configPERIPHERAL_CLOCK_HZ	40000000
 
 /*============================================================================*/
 int SerialPortInitMinimal( unsigned int port, unsigned long BaudRate )
 	{
+	/*unsigned short	usBRG;*/
+
 	int				index;
 
 	if( port == 1 )
@@ -44,72 +131,30 @@ int SerialPortInitMinimal( unsigned int port, unsigned long BaudRate )
 
 	/* Create the queues used by the com test task. */
 	QueueInit( &QueuesRX[index], sizeof( signed char ), QUEUE_LENGTH, &BuffersRX, QUEUE_SWITCH_IN_ISR );
-	QueueInit( &QueuesTX[index], sizeof( signed char ), QUEUE_LENGTH, &BuffersTX, QUEUE_SWITCH_NORMAL );
+	QueueInit( &QueuesTX[index], sizeof( signed char ), QUEUE_LENGTH, &BuffersTX, QUEUE_NORMAL );
 
-#if 1
+#if 0
 	/* Configure the UART and interrupts. */
+	usBRG				= (unsigned short)(( (float)configPERIPHERAL_CLOCK_HZ / ( (float)16 * (float)BaudRate ) ) - (float)0.5);
 
-//                            14745600ul / ( 4 * 115200ul ) - 1
 	if( port == 1 )	
 		{
-        // PORTSetPinsDigitalIn( IOPORT_B, BIT_2 );
-        ANSBbits.ANSB2		= 0;
-        TRISBbits.TRISB2	= 1;
+		PORTSetPinsDigitalIn( IOPORT_B, BIT_2 );
+		PORTSetPinsDigitalOut( IOPORT_B, BIT_3 );
+		U1RXRbits.U1RXR		= 4;
+		RPB3Rbits.RPB3R		= 1;
 
-        // PORTSetPinsDigitalOut( IOPORT_B, BIT_7 );
-        LATBbits.LATB7		= 1;
-        TRISBbits.TRISB7	= 0;
+		OpenUART1( UART_EN, UART_RX_ENABLE | UART_TX_ENABLE | UART_INT_TX | UART_INT_RX_CHAR, usBRG );
 
-        // PORTSetPinsDigitalOut( IOPORT_B, BIT_9 );
-        LATBbits.LATB9		= 1;
-        TRISBbits.TRISB9	= 0;
-
-		//U1RXRbits.U1RXR		= 4;
-		//RPB3Rbits.RPB3R		= 1;
-
-		//OpenUART1( UART_EN, UART_RX_ENABLE | UART_TX_ENABLE | UART_INT_TX | UART_INT_RX_CHAR, usBRG );
-        U1MODEbits.USIDL	= 0;
-        U1MODEbits.IREN		= 0;
-        U1MODEbits.RTSMD	= 0;
-        U1MODEbits.UEN		= 1;
-        U1MODEbits.WAKE		= 0;
-        U1MODEbits.LPBACK	= 0;
-        U1MODEbits.ABAUD	= 0;
-        U1MODEbits.RXINV	= 0;
-        U1MODEbits.BRGH		= 1;
-        U1MODEbits.PDSEL	= 0;
-        U1MODEbits.STSEL	= 1;    /* Two stop bits (for MODBUS) */
-
-        U1STAbits.UTXISEL0	= 0;
-        U1STAbits.UTXISEL1	= 0;
-        U1STAbits.UTXINV	= 0;
-        U1STAbits.UTXBRK	= 0;
-        U1STAbits.UTXEN		= 1;
-        U1STAbits.URXISEL	= 0;
-        U1STAbits.ADDEN		= 0;
-        U1STAbits.OERR		= 0;
-
-    	U1BRG				= (unsigned short)(( (float)PERIPHERAL_CLOCK_HZ / ( (float)4 * (float)BaudRate ) ) - (float)0.5);
-
-    	U1MODEbits.UARTEN	= 1;
-
-		//INTSetVectorPriority( INT_UART_1_VECTOR, KERNEL_INTERRUPT_PRIORITY + 1 );
-        IPC2bits.U1RXIP     = 1;
-		//INTClearFlag( INT_U1RX );
-        IFS0bits.U1RXIF		= 0;
-		//INTEnable( INT_U1RX, INT_ENABLED );		
-        IEC0bits.U1RXIE		= 1;
-
-		//INTSetVectorSubPriority( INT_UART_1_VECTOR, UART_INT_SUB_PR0 );
-        IPC3bits.U1TXIP     = 1;
-		//INTClearFlag( INT_U1TX );
-        IFS0bits.U1TXIF		= 0;
-		//INTEnable( INT_U1TX, INT_DISABLED );
-        IEC0bits.U1TXIE		= 0;
+		INTClearFlag( INT_U1RX );
+		INTClearFlag( INT_U1TX );
+		INTSetVectorPriority( INT_UART_1_VECTOR, configKERNEL_INTERRUPT_PRIORITY + 1 );
+		INTSetVectorSubPriority( INT_UART_1_VECTOR, UART_INT_SUB_PR0 );
+		INTEnable( INT_U1RX, INT_ENABLED );		
+		INTEnable( INT_U1TX, INT_DISABLED );
 		}
 	else
 		{
-/*
 		PORTSetPinsDigitalIn( IOPORT_B, BIT_8 );
 		PORTSetPinsDigitalOut( IOPORT_B, BIT_9 );
 		U2RXRbits.U2RXR		= 4;
@@ -119,11 +164,10 @@ int SerialPortInitMinimal( unsigned int port, unsigned long BaudRate )
 
 		INTClearFlag( INT_U2RX );
 		INTClearFlag( INT_U2TX );
-		INTSetVectorPriority( INT_UART_2_VECTOR, KERNEL_INTERRUPT_PRIORITY + 1 );
+		INTSetVectorPriority( INT_UART_2_VECTOR, configKERNEL_INTERRUPT_PRIORITY + 1 );
 		INTSetVectorSubPriority( INT_UART_2_VECTOR, UART_INT_SUB_PR0 );
 		INTEnable( INT_U2RX, INT_ENABLED );
 		INTEnable( INT_U2TX, INT_DISABLED );
-*/
 		}	
 #endif
 	return 1;
@@ -168,10 +212,11 @@ int SerialTransmit( unsigned int port, signed char c, tickcount_t TimeToWait )
 		return 0;
 	else
 		{
-
+/*
 		if( index )
 			IEC1bits.U2TXIE	= 1;
 		else
+*/
 			IEC0bits.U1TXIE	= 1;
 
 		return 1;
@@ -180,7 +225,8 @@ int SerialTransmit( unsigned int port, signed char c, tickcount_t TimeToWait )
 	}
 
 /*============================================================================*/
-void __attribute__((noinline)) U1RXHandler( void )
+
+void U1Handler( void )
 	{
 	int			MustSwitch	= 0;
 	/* Declared static to minimise stack use. */
@@ -199,15 +245,7 @@ void __attribute__((noinline)) U1RXHandler( void )
 			}
 		IFS0bits.U1RXIF	= 0;
 		}
-	if( MustSwitch )
-    	HigherPriorityAwakened();
-    }
-/*============================================================================*/
-void __attribute__((noinline)) U1TXHandler( void )
-	{
-	/* Declared static to minimise stack use. */
-	static char	cChar;
-
+	
 	/* Are any Tx interrupts pending? */
 	if( IFS0bits.U1TXIF == 1 )
 		{
@@ -217,8 +255,12 @@ void __attribute__((noinline)) U1TXHandler( void )
 
 			Result = QueueReadFromISR( &QueuesTX[0], &cChar );
 			if( Result > 0 )
+				{
 				/* Send the next character queued for Tx. */
 				U1TXREG = cChar;
+				if( Result > 1 )
+					MustSwitch	= 1;
+				}
 			else
 				{
 				/* Queue empty, nothing to send. */
@@ -229,35 +271,10 @@ void __attribute__((noinline)) U1TXHandler( void )
 			}
 		IFS0bits.U1TXIF	= 0;
 		}
+
+	if( MustSwitch )
+    	HigherPriorityAwakened();
 	}
-/*============================================================================*/
-void __attribute__((interrupt,naked,auto_psv)) _U1RXInterrupt( void )
-	{
-	SaveContext();
-
-	U1RXHandler();
-
-	/*
-	Doing it this way to save stack and also because some dsPICs and PIC24 execute
-	'bra' and 'goto' faster than 'call' or 'rcall'. We are not returnig from here
-	anyway.
-	*/
-	asm volatile( "bra  _RestoreContext	\n" );
-    }
-/*============================================================================*/
-void __attribute__((interrupt,naked,auto_psv)) _U1TXInterrupt( void )
-	{
-	SaveContext();
-
-	U1TXHandler();
-
-	/*
-	Doing it this way to save stack and also because some dsPICs and PIC24 execute
-	'bra' and 'goto' faster than 'call' or 'rcall'. We are not returnig from here
-	anyway.
-	*/
-	asm volatile( "bra  _RestoreContext	\n" );
-    }
 /*============================================================================*/
 #if 0
 #if			defined __DEBUG

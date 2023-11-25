@@ -34,7 +34,7 @@ isaacbavaresco@yahoo.com.br
 /*============================================================================*/
 typedef unsigned long	tickcount_t;
 /*============================================================================*/
-#if         defined __PIC32MZ__ && __PIC32_FEATURE_SET1 == 'F'
+#if         defined __PIC32MK__ || ( defined __PIC32MZ__ && __PIC32_FEATURE_SET1 == 'F' )
 typedef struct
     {
     union
@@ -48,11 +48,60 @@ typedef struct
         } FPRegs[32];
     unsigned long   FCSR;
     } fpucontext_t;
-#endif  /*  defined __PIC32MZ__ && __PIC32_FEATURE_SET1 == 'F' */
+#endif  /*  defined __PIC32MK__ || ( defined __PIC32MZ__ && __PIC32_FEATURE_SET1 == 'F' ) */
 /*============================================================================*/
 typedef struct
 	{
-	unsigned long	sp;
+	unsigned long	r1;
+	unsigned long	r2;
+	unsigned long	r3;
+	unsigned long	r4;
+	unsigned long	r5;
+	unsigned long	r6;
+	unsigned long	r7;
+	unsigned long	r8;
+	unsigned long	r9;
+	unsigned long	r10;
+	unsigned long	r11;
+	unsigned long	r12;
+	unsigned long	r13;
+	unsigned long	r14;
+	unsigned long	r15;
+	unsigned long	r16;
+	unsigned long	r17;
+	unsigned long	r18;
+	unsigned long	r19;
+	unsigned long	r20;
+	unsigned long	r21;
+	unsigned long	r22;
+	unsigned long	r23;
+	unsigned long	r24;
+	unsigned long	r25;
+	unsigned long	r26;
+	unsigned long	r27;
+	unsigned long	r28;
+	unsigned long	r29;
+	unsigned long	r30;
+	unsigned long	r31;
+
+	unsigned long	CP0_CAUSE;
+	unsigned long	CP0_STATUS;
+	unsigned long	CP0_EPC;
+
+   	unsigned long	HI;
+	unsigned long	LO;
+
+#if         defined __PIC32MK__ || defined __PIC32MZ__
+    unsigned long	AC1H;
+    unsigned long	AC1L;
+    unsigned long	AC2H;
+    unsigned long	AC2L;
+    unsigned long	AC3H;
+    unsigned long	AC3L;
+    unsigned long	DSP;
+#endif	/*  defined __PIC32MK__ || defined __PIC32MZ__ */
+
+	unsigned long	errno;
 
 	tickcount_t		TDelay;
 
@@ -68,9 +117,9 @@ typedef struct
 
 	void			*ExtraParameter;
 
-#if         defined __PIC32MZ__ && __PIC32_FEATURE_SET1 == 'F'
+#if         defined __PIC32MK__ || ( defined __PIC32MZ__ && __PIC32_FEATURE_SET1 == 'F' )
     fpucontext_t    *FPUContext;
-#endif  /*  defined __PIC32MZ__ && __PIC32_FEATURE_SET1 == 'F' */
+#endif  /*  defined __PIC32MK__ || ( defined __PIC32MZ__ && __PIC32_FEATURE_SET1 == 'F' ) */
 	} context_t;
 /*============================================================================*/
 #define GetAddress(f)	(f)

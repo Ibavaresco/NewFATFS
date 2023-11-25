@@ -209,9 +209,52 @@
 #define	IECbitsU6TX	IEC2bits
 #define	IPCbitsU6	IPC12bits
 /*----------------------------------------------------------------------------*/
-#endif	/*	defined __32MX250F128B__ */
+#endif	/*	defined __32MX110F016B__ ... */
 /*----------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------*/
+#elif		defined __PIC32MK__ 
+
+#define	SERIAL_PORTS	 6
+
+#define	IFSbitsU1RX	IFS1bits
+#define	IFSbitsU1TX	IFS1bits
+#define	IFSbitsU2RX	IFS1bits
+#define	IFSbitsU2TX	IFS1bits
+#define	IFSbitsU3RX	IFS1bits
+#define	IFSbitsU3TX	IFS2bits
+#define	IFSbitsU4RX	IFS2bits
+#define	IFSbitsU4TX	IFS2bits
+#define	IFSbitsU5RX	IFS2bits
+#define	IFSbitsU5TX	IFS2bits
+#define	IFSbitsU6RX	IFS5bits
+#define	IFSbitsU6TX	IFS5bits
+
+#define	IECbitsU1RX	IEC1bits
+#define	IECbitsU1TX	IEC1bits
+#define	IECbitsU2RX	IEC1bits
+#define	IECbitsU2TX	IEC1bits
+#define	IECbitsU3RX	IEC1bits
+#define	IECbitsU3TX	IEC2bits
+#define	IECbitsU4RX	IEC2bits
+#define	IECbitsU4TX	IEC2bits
+#define	IECbitsU5RX	IEC2bits
+#define	IECbitsU5TX	IEC2bits
+#define	IECbitsU6RX	IEC5bits
+#define	IECbitsU6TX	IEC5bits
+
+#define	IPCbitsU1RX	IPC9bits
+#define	IPCbitsU1TX	IPC10bits
+#define	IPCbitsU2RX	IPC14bits
+#define	IPCbitsU2TX	IPC14bits
+#define	IPCbitsU3RX	IPC15bits
+#define	IPCbitsU3TX	IPC16bits
+#define	IPCbitsU4RX	IPC16bits
+#define	IPCbitsU4TX	IPC16bits
+#define	IPCbitsU5RX	IPC17bits
+#define	IPCbitsU5TX	IPC17bits
+#define	IPCbitsU6RX	IPC41bits
+#define	IPCbitsU6TX	IPC41bits
+
 #elif		defined __PIC32MZ__
 
 #define	SERIAL_PORTS	 6
@@ -255,22 +298,22 @@
 #define	IPCbitsU6RX	IPC47bits
 #define	IPCbitsU6TX	IPC47bits
 
-#endif	/*	defined __32MX110F016B__ ... */
+#endif	/*	defined __PIC32MX__ */
 /*============================================================================*/
 
-#define QUEUE_LENGTH	32
+#define QUEUE_LENGTH	128
 
 /*============================================================================*/
 
 /* The queues used to communicate between tasks and ISR's. */
-/*static*/ queue_t			QueuesRX[SERIAL_PORTS]; 
-/*static*/ unsigned char	BuffersRX[SERIAL_PORTS][QUEUE_LENGTH]; 
-/*static*/ queue_t			QueuesTX[SERIAL_PORTS]; 
-/*static*/ unsigned char	BuffersTX[SERIAL_PORTS][QUEUE_LENGTH]; 
+/*static*/ queue_t			QueuesRX[SERIAL_PORTS];
+/*static*/ unsigned char	BuffersRX[SERIAL_PORTS][QUEUE_LENGTH];
+/*static*/ queue_t			QueuesTX[SERIAL_PORTS];
+/*static*/ unsigned char	BuffersTX[SERIAL_PORTS][QUEUE_LENGTH];
 
 /* Flag used to indicate the tx status. */
 
-#define	PERIPHERAL_CLOCK_HZ	80000000
+#define	PERIPHERAL_CLOCK_HZ	60000000
 
 /*============================================================================*/
 #if			defined __PIC32MX__
@@ -290,7 +333,7 @@
 	IPCbitsU##p.U##p##IS    	= 0;		\
 	IECbitsU##p##RX.U##p##RXIE	= 1;
 
-#elif		defined __PIC32MZ__
+#elif		defined __PIC32MK__ || defined __PIC32MZ__
 
 #define	SERIALINIT(p)					\
 	U##p##MODEbits.ON		= 0;		\
@@ -345,7 +388,7 @@ int SerialPortInitMinimal( unsigned int port, unsigned long BaudRate )
  			SERIALINIT( 2 );
             if( UserConfigUART2 != NULL )
                 UserConfigUART2();
-#else	/*	0 */
+#else 	/*	0 */        
 			U2MODEbits.ON		= 0;
 			U2BRG				= usBRG;
 		/*	U2MODEbits.UEN		= 0; */
@@ -356,21 +399,21 @@ int SerialPortInitMinimal( unsigned int port, unsigned long BaudRate )
 			U2STAbits.UTXEN		= 1;
 			U2STAbits.URXISEL	= 0;
 			IFSbitsU2RX.U2RXIF	= 0;
-#if         defined __PIC32MZ__
+#if         defined __PIC32MK__ || defined __PIC32MZ__
 			IPCbitsU2RX.U2RXIP	= KERNEL_INTERRUPT_PRIORITY + 0;
 			IPCbitsU2RX.U2RXIS	= 0;
 			IPCbitsU2TX.U2TXIP	= KERNEL_INTERRUPT_PRIORITY + 0;
 			IPCbitsU2TX.U2TXIS	= 0;
 			IECbitsU2RX.U2RXIE	= 1;
-#else   /*  defined __PIC32MZ__ */
+#else   /*  defined __PIC32MK__ || defined __PIC32MZ__ */
 			IPCbitsU2.U2IP  	= KERNEL_INTERRUPT_PRIORITY + 0;
 			IPCbitsU2.U2IS  	= 0;
 			IECbitsU2RX.U2RXIE	= 1;
-#endif  /*  defined __PIC32MZ__ */
-
-#endif	/*	0 */
-
-			break;
+#endif  /*  defined __PIC32MK__ || defined __PIC32MZ__ */
+            if( UserConfigUART2 != NULL )
+                UserConfigUART2();
+#endif	/* 0 */
+            break;
 #endif	/*	SERIAL_PORTS >= 2 */
 #if			SERIAL_PORTS >= 3
 		case 3:
@@ -495,6 +538,12 @@ void __attribute__(( vector( _UART##v##_VECTOR ), interrupt, nomips16, naked )) 
 
 #define	IMPLEMENTRXHANDLER(p)												\
 	/* Are any Rx interrupts pending? */									\
+	if( U##p##STAbits.OERR != 0 )											\
+		{																	\
+		U##p##STAbits.OERR	= 0;											\
+		U##p##Overrun++;													\
+		}																	\
+																			\
 	if( IFSbitsU##p##RX.U##p##RXIF == 1 && IECbitsU##p##RX.U##p##RXIE == 1 )\
 		{																	\
 		while( U##p##STAbits.URXDA )										\
@@ -547,6 +596,7 @@ void __attribute__(( vector( _UART##v##_VECTOR ), interrupt, nomips16, naked )) 
 	IMPLEMENTVECTOR(p,_##p,p)
 
 #define	DECLAREHANDLER(p)													\
+unsigned long	U##p##Overrun = 0;											\
 void U##p##Handler( void )													\
 	{																		\
 	int			MustSwitch	= 0;											\
@@ -560,14 +610,15 @@ void U##p##Handler( void )													\
 	}
 
 /*============================================================================*/
-#elif		defined __PIC32MZ__
+#elif		defined __PIC32MK__ || defined __PIC32MZ__
 /*============================================================================*/
 
 #define	DECLAREVECTOR(p)													\
-	IMPLEMENTVECTOR(p##_RX,p##_RX,p##RX)											\
+	IMPLEMENTVECTOR(p##_RX,p##_RX,p##RX)									\
 	IMPLEMENTVECTOR(p##_TX,p##_TX,p##TX)
 
 #define	DECLAREHANDLER(p)													\
+unsigned long	U##p##Overrun	= 0;										\
 void U##p##_RXHandler( void )												\
 	{																		\
 	int			MustSwitch	= 0;											\
@@ -605,7 +656,7 @@ DECLAREVECTOR(2)
 DECLAREHANDLER(2)
 #else	/*	0 */
 
-#if         defined __PIC32MZ__
+#if         defined __PIC32MK__ || defined __PIC32MZ__
 void __attribute__(( vector( _UART2_RX_VECTOR ), interrupt, nomips16, naked )) U2RXVector( void )
 	{
 	asm volatile(
@@ -648,10 +699,17 @@ void __attribute__(( vector( _UART2_TX_VECTOR ), interrupt, nomips16, naked )) U
 		);
 	}
 
+unsigned long	U2Overrun	= 0;
 void U2RXHandler( void )
 	{
 	int			MustSwitch	= 0;
 	static char	cChar;
+
+	if( U2STAbits.OERR != 0 )
+		{
+		U2STAbits.OERR	= 0;
+		U2Overrun++;
+		}
 
 	/* Are any Rx interrupts pending? */
 	if( IFSbitsU2RX.U2RXIF == 1 && IECbitsU2RX.U2RXIE == 1 )
@@ -708,7 +766,122 @@ void U2TXHandler( void )
 		CurrentTask	= ReadyTasks[HighestReadyPriority];
 	}
 
-#else   /*  defined __PIC32MZ__ */
+#if 0
+void __attribute__(( vector( _UART5_RX_VECTOR ), interrupt, nomips16, naked )) U5RXVector( void )
+	{
+	asm volatile(
+		".extern	SaveContext		\r\n"
+		".extern	RestoreContext	\r\n"
+
+		"addiu		$sp,$sp,-8		\r\n"
+		"sw			$ra,4($sp)		\r\n"
+
+		"jal		SaveContext		\r\n"
+		"nop						\r\n"
+		/*------------------------------------------------------------*/
+		"jal		U5RXHandler     \r\n"
+		"nop						\r\n"
+		/*------------------------------------------------------------*/
+		"j			RestoreContext	\r\n"
+		"nop						\r\n"
+		/*------------------------------------------------------------*/
+		);
+	}
+
+void __attribute__(( vector( _UART5_TX_VECTOR ), interrupt, nomips16, naked )) U5TXVector( void )
+	{
+	asm volatile(
+		".extern	SaveContext		\r\n"
+		".extern	RestoreContext	\r\n"
+
+		"addiu		$sp,$sp,-8		\r\n"
+		"sw			$ra,4($sp)		\r\n"
+
+		"jal		SaveContext		\r\n"
+		"nop						\r\n"
+		/*------------------------------------------------------------*/
+		"jal		U5TXHandler     \r\n"
+		"nop						\r\n"
+		/*------------------------------------------------------------*/
+		"j			RestoreContext	\r\n"
+		"nop						\r\n"
+		/*------------------------------------------------------------*/
+		);
+	}
+
+unsigned long	U5Overrun	= 0;
+void U5RXHandler( void )
+	{
+	int			MustSwitch	= 0;
+	static char	cChar;
+
+	if( U5STAbits.OERR != 0 )
+		{
+		U5STAbits.OERR	= 0;
+		U5Overrun++;
+		}
+
+	if( IFSbitsU5RX.U5RXIF == 1 && IECbitsU5RX.U5RXIE == 1 )
+		{
+		while( U5STAbits.URXDA )
+			{
+			/* Retrieve the received character and place it in the queue of	
+			received characters. */
+			cChar = U5RXREG;
+			if( QueueWriteFromISR( &QueuesRX[5-1], &cChar ) > 1 )
+				MustSwitch	= 1;
+			}
+		IFSbitsU5RX.U5RXIF	= 0;
+		}
+
+	if( MustSwitch )
+		CurrentTask	= ReadyTasks[HighestReadyPriority];
+	}
+
+void U5TXHandler( void )
+	{
+	int			MustSwitch	= 0;
+	static char	cChar;
+
+    /* Are any Tx interrupts pending? */
+	if( IFSbitsU5TX.U5TXIF == 1 && IECbitsU5TX.U5TXIE == 1 )
+		{
+		while( U5STAbits.UTXBF == 0 )
+			{
+			int	Result;
+
+			Result = QueueReadFromISR( &QueuesTX[5-1], &cChar );
+			if( Result > 0 )
+				{
+				/* Send the next character queued for Tx. */
+				U5TXREG = cChar;
+
+				T9CONbits.ON	= 0;
+				TMR9		   -= 4790;
+				IFS2bits.T9IF	= 0;
+				T9CONbits.ON	= 1;
+				LATAbits.LATA15	= 1;
+				if( Result > 1 )
+					MustSwitch	= 1;
+				}
+			else
+				{
+				/* Queue empty, nothing to send. */
+				/*IFSbitsU##p.U##p##TXIF	= 0;*/
+				IECbitsU5TX.U5TXIE	= 0;
+				break;
+				}
+			}
+
+		if( U5STAbits.UTXBF != 0 )
+			IFSbitsU5TX.U5TXIF	= 0;
+		}
+
+	if( MustSwitch )
+		CurrentTask	= ReadyTasks[HighestReadyPriority];
+	}
+#endif
+#else   /*  defined __PIC32MK__ || defined __PIC32MZ__ */
 void __attribute__(( vector( _UART_2_VECTOR ), interrupt, nomips16, naked )) U2Vector( void )
 	{
 	asm volatile(
@@ -730,10 +903,17 @@ void __attribute__(( vector( _UART_2_VECTOR ), interrupt, nomips16, naked )) U2V
 		);
 	}
 
+unsigned long	U2Overrun	= 0;
 void U2Handler( void )
 	{
 	int			MustSwitch	= 0;
 	static char	cChar;
+
+	if( U2STAbits.OERR != 0 )
+		{
+		U2STAbits.OERR	= 0;
+		U2Overrun++;
+		}
 
 	if( IFSbitsU2RX.U2RXIF == 1 && IECbitsU2RX.U2RXIE == 1 )
 		{
@@ -778,7 +958,7 @@ void U2Handler( void )
 		CurrentTask	= ReadyTasks[HighestReadyPriority];
 	}
 
-#endif  /*  defined __PIC32MZ__ */
+#endif  /*  defined __PIC32MK__ || defined __PIC32MZ__ */
 
 #endif	/*	0 */
 #endif	/*	SERIAL_PORTS >= 2 */
@@ -794,68 +974,14 @@ DECLAREHANDLER(4)
 #endif	/*	SERIAL_PORTS >= 4 */
 
 #if			SERIAL_PORTS >= 5
-DECLAREVECTOR(5)
-DECLAREHANDLER(5)
+//DECLAREVECTOR(5)
+//DECLAREHANDLER(5)
 #endif	/*	SERIAL_PORTS >= 5 */
 
 #if			SERIAL_PORTS >= 6
 DECLAREVECTOR(6)
 DECLAREHANDLER(6)
 #endif	/*	SERIAL_PORTS > 6 */
-
-/*============================================================================*/
-#if			0 /*defined __DEBUG*/
-#if			defined __MPLAB_DEBUGGER_SIMULATOR || defined SIMULATED_UART
-
-static const char	Packet[]	= { 'v', 's', 'k', 'v', 'd', 'k', 'v', 'k', 'v', 's', 'k', 'd' };
-static int			ip			= 0;
-
-void __attribute__(( vector( _TIMER_2_VECTOR ), interrupt, nomips16, naked ))T2Vector( void )
-	{
-	asm volatile(
-		".extern	SaveContext		\r\n"
-		".extern	RestoreContext	\r\n"
-																			
-		"addiu		$sp,$sp,-8		\r\n"
-		"sw			$ra,4($sp)		\r\n"
-
-		"jal		SaveContext		\r\n"
-		"nop						\r\n"
-		/*------------------------------------------------------------*/
-		"jal		T2Handler		\r\n"
-		"nop						\r\n"
-		/*------------------------------------------------------------*/
-		"j			RestoreContext	\r\n"
-		"nop						\r\n"
-		/*------------------------------------------------------------*/
-		);
-	}
-
-void T2Handler( void )
-	{
-	int		MustSwitch	= 0;
-	char	c			= Packet[ip];
-
-	if( ++ip >= sizeof Packet )
-		ip	= 0;
-
-	/*INTClearFlag( INT_T2 );*/						/* clear the interrupt flag	*/
-	IFS0bits.T2IF	= 0;
-
-	if( QueueWriteFromISR( &QueuesRX[1], &c ) > 1 )
-		MustSwitch	= 1;
-/*
-	if( QueueReadFromISR( &QueuesTX[0], &c ) > 1 )
-		MustSwitch	= 1;
-*/
-	if( MustSwitch )
-		CurrentTask	= ReadyTasks[HighestReadyPriority];
-	}
-
-#endif	/*	defined __MPLAB_DEBUGGER_SIMULATOR  || defined SIMULATED_UART */
-
-#endif	/*	defined __DEBUG */
-
 /*============================================================================*/
 #endif	/*	defined __XC32__ || defined __C32_VERSION__ */
 /*============================================================================*/
