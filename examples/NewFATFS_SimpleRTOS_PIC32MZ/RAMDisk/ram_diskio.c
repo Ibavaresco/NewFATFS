@@ -3,7 +3,7 @@
 #include "ram_diskio.h"
 /*============================================================================*/
 #define RAMDISK_SECTOR_SIZE		512
-#define RAMDISK_SECTOR_COUNT	128
+#define RAMDISK_SECTOR_COUNT	384
 /*============================================================================*/
 static ffs_diskstatus_t	RAMDisk_initialize	( void *Cookie );
 static ffs_diskstatus_t	RAMDisk_status		( void *Cookie );

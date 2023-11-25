@@ -330,6 +330,9 @@ static int T1Helper( int fd )
 /*============================================================================*/
 static void Task1( void *p )
     {
+	static const char Msg[]	= "Task1 was here!\r\n";
+
+
 	FFS_AttachDrive( "ramd", NULL, &RAMDisk_Driver );
 	format( "ramd" );
 	mount( "ramd", "A:" );
@@ -337,25 +340,19 @@ static void Task1( void *p )
     while( 1 )
         {
 		int	fd;
-/*
+
 		while(( fd = open( FileName, O_RDWR | O_APPEND, ACCESS_ALLOW_APPEND )) == -1 )
-			vSleep( 1 );
-		
-		T1Helper( fd );
+			Yield();
+
+		while( write( fd, Msg, sizeof Msg - 1 ) > 0 )
+			Yield();
 		
 		close( fd );
-*/
-        vSleep( 1 );
+		
+		while( 1 )
+			vSleep( 1 );
         }
     }
-/*============================================================================*/
-static int T2Helper( int fd )
-	{
-	static const char	Msg[]	= "Task2 was here!\r\n";
-	volatile int		len;
-
-	len = write( fd, Msg, sizeof Msg - 1 );
-	}
 /*============================================================================*/
 static void Task2( void *p )
     {
@@ -365,17 +362,17 @@ static void Task2( void *p )
         {
 		int	fd;
 
-        intsave_t   s   = SaveAndDisableInterrupts();
+        //intsave_t   s   = SaveAndDisableInterrupts();
         
 		while(( fd = open( FileName, O_RDWR | O_CREAT | O_APPEND, ACCESS_ALLOW_APPEND )) == -1 )
-			vSleep( 1 );
+			Yield();
 
 		while(( len = write( fd, Msg, sizeof Msg - 1 )) > 0 )
-			{}
+			Yield();
 
 		close( fd );
 
-        RestoreInterrupts( s );
+        //RestoreInterrupts( s );
 
 		while( 1 )
 	        vSleep( 1 );
@@ -386,18 +383,24 @@ static void Task3( void *p )
     {
     while( 1 )
         {
-		volatile int	len;
+		volatile tickcount_t t1;
+		volatile int	len, total;
 		char			Buff[128];
 		int				fd;
-/*
-		while(( fd = open( FileName, O_RDONLY, ACCESS_ALLOW_APPEND )) == -1 )
-			vSleep( 1 );
 
+		t1	= GetTickCount();
+		
+		while(( fd = open( FileName, O_RDONLY, ACCESS_ALLOW_APPEND )) == -1 )
+			Yield();
+
+		total	= 0;
 		while(( len = read( fd, Buff, sizeof Buff )) > 0 )
-	        vSleep( 1 );
+	        total += len;
 
 		close( fd );
-*/
+
+		t1	= GetTickCount() - t1;
+
 		vSleep( 1 );
         }
     }
@@ -413,6 +416,12 @@ static void Task4( void *p )
 int main( void )
     {
 	int	i;
+
+	CHECONbits.PFMWS	= 3;
+	CHECONbits.PREFEN	= 1;
+	CHECONbits.PFMAWSEN	= 1;
+
+    INTCONbits.MVEC		= 1;
 
 	/* Initialize the guts of the RTOS. */
     InitRTOS( Contexts, MAX_TASKS );
