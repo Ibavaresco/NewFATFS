@@ -1,4 +1,6 @@
 /*============================================================================*/
+/* <https://github.com/Ibavaresco/NewFATFS> */
+/*============================================================================*/
 #include <fcntl.h>
 #include <stdarg.h>
 #include <string.h>
@@ -319,19 +321,9 @@ static int format( const char *pdname )
 	return mkfs( pdname, NULL, Buff, sizeof Buff );
 	}
 /*============================================================================*/
-static int T1Helper( int fd )
-	{
-	volatile int	len;
-
-	static const char Msg[]	= "Task1 was here!\r\n";
-
-	len	= write( fd, Msg, sizeof Msg - 1 );
-	}
-/*============================================================================*/
 static void Task1( void *p )
     {
-	static const char Msg[]	= "Task1 was here!\r\n";
-
+	static const char	Msg[]	= "Task1 was here!\r\n";
 
 	FFS_AttachDrive( "ramd", NULL, &RAMDisk_Driver );
 	format( "ramd" );
@@ -339,16 +331,26 @@ static void Task1( void *p )
 
     while( 1 )
         {
-		int	fd;
+		volatile int	len, total;
+		tickcount_t		t1;
+		int				fd;
 
+		t1	= GetTickCount();
+		
 		while(( fd = open( FileName, O_RDWR | O_APPEND, ACCESS_ALLOW_APPEND )) == -1 )
+			vSleep( 1 );
+		
+		total = 0;
+		while(( len = write( fd, Msg, sizeof Msg - 1 )) > 0 )
+			{
+			total += len;
 			Yield();
-
-		while( write( fd, Msg, sizeof Msg - 1 ) > 0 )
-			Yield();
+			}
 		
 		close( fd );
-		
+
+		t1	= GetTickCount() - t1;
+
 		while( 1 )
 			vSleep( 1 );
         }
@@ -357,25 +359,31 @@ static void Task1( void *p )
 static void Task2( void *p )
     {
 	static const char	Msg[]	= "Task2 was here!\r\n";
-	volatile int		len;
+
     while( 1 )
         {
-		int	fd;
+		volatile int	len, total;
+		tickcount_t		t1;
+		int				fd;
 
-        //intsave_t   s   = SaveAndDisableInterrupts();
-        
 		while(( fd = open( FileName, O_RDWR | O_CREAT | O_APPEND, ACCESS_ALLOW_APPEND )) == -1 )
-			Yield();
+			vSleep( 1 );
 
+		t1	= GetTickCount();
+
+		total	= 0;
 		while(( len = write( fd, Msg, sizeof Msg - 1 )) > 0 )
+			{
+			total += len;
 			Yield();
+			}
+
+		t1	= GetTickCount() - t1;
 
 		close( fd );
 
-        //RestoreInterrupts( s );
-
 		while( 1 )
-	        vSleep( 1 );
+			vSleep( 1 );
         }
     }
 /*============================================================================*/
@@ -388,18 +396,18 @@ static void Task3( void *p )
 		char			Buff[128];
 		int				fd;
 
-		t1	= GetTickCount();
-		
 		while(( fd = open( FileName, O_RDONLY, ACCESS_ALLOW_APPEND )) == -1 )
-			Yield();
+			vSleep( 1 );
+
+		t1	= GetTickCount();
 
 		total	= 0;
 		while(( len = read( fd, Buff, sizeof Buff )) > 0 )
-	        total += len;
-
-		close( fd );
+			total += len;
 
 		t1	= GetTickCount() - t1;
+
+		close( fd );
 
 		vSleep( 1 );
         }

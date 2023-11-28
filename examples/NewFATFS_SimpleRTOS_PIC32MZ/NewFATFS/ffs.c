@@ -1,7 +1,7 @@
 /*============================================================================*/
 /*
 
-NewFATFS
+NewFATFS <https://github.com/Ibavaresco/NewFATFS>
 
 FAT File System routines based on Chan's FatFs (<http://elm-chan.org/fsw/ff/>).
 Please see his original copyright and license further below.
@@ -4476,14 +4476,9 @@ static int _open_b( ffs_volume_t *fs, ffs_file_t *fp, const ffs_char_t *path, in
 		/* The file is not open... */
 		else
 			{
-			/* ...we will need a free object... */
-			if( !ThereAreFreeObjects() )
-				/* ...but there is no more free file shres available. */
-				return SetErrNo( ENOENT, -1 );
-
-			/* Let's get the object. It sould not fail, but... */
+			/* We will need a free object... */
 			if( !ObjectIndexIsValid( fpobjidx = GetFreeObjectIdx() ))
-				/* ...you never know... */
+				/* ...but there is none free. */
 				return SetErrNo( ENOENT, -1 );	//@@@@FIXME: errno value
 
 			/* Let's use this newly acquired object. */
@@ -4495,8 +4490,13 @@ static int _open_b( ffs_volume_t *fs, ffs_file_t *fp, const ffs_char_t *path, in
 				{
 				/* ...let's try... */
 				if( TruncateFile( fs, &dj, fp ) != FR_OK )
+					{
+					/* ...but it failed. We must return the object we just acquired... */
+					ReturnFreeObjectIdx( fpobjidx );
+					/* ...and return a failure status. */
 					return SetErrNo( ENOENT, -1 );	//@@@@FIXME: errno value
-				/* We just trucated the file, so it is modified now, signal it. */
+					}
+				/* We just truncated the file, so it is modified now, signal it. */
 				fpobj->statusflags	= FA_MODIFIED;
 				}
 			}
@@ -4695,30 +4695,39 @@ int _open( const ffs_char_t *path, int oflag, mode_t pmode )
 	return result;
 	}
 /*============================================================================*/
+static inline int __attribute__((always_inline)) ClusterIsValid( ffs_volume_t *fs, uint32_t Cluster )
+	{
+	return Cluster >= FIRST_VALID_CLUSTER && Cluster <= fs->fatentriescount;
+	}
+/*----------------------------------------------------------------------------*/
+static inline int __attribute__((always_inline)) min( int a, int b )
+	{
+	return a < b ? a : b;
+	}
 /*============================================================================*/
 /*----------------------------------------------------------------------------*/
 /* Read File                                                             */
 /*----------------------------------------------------------------------------*/
 /*============================================================================*/
-static int _read_a( int fd, int salt, void *buff, size_t btr ) 	/* Pointer to the file object */ /* Pointer to data buffer */ /* Number of bytes to read */ /* Pointer to number of bytes read */
+static int _read_a( int fd, int salt, uint8_t *buff, size_t BytesToRead )
 	{
-	lba_t			sect;
-	filesize_t		remain;
-	ffs_volume_t	*fs;
-	ffs_object_t	*obj;
 	ffs_file_t		*fp;
-	uint8_t			*rbuff = (uint8_t*)buff;
-	uint32_t		clst;
-	unsigned int	rcnt, cc, csect;
-	size_t			bytesread	= 0;
+	ffs_object_t	*obj;
+	ffs_volume_t	*fs;
+	lba_t			CurrentSector;
+	size_t			BytesRead;
+	int				SegmentSize;
+	int				OffsetInSector;
+	int				RemainingSectorsInCluster;
 
 	fp	= &FFS_Files[fd];
+
+	if( salt != fp->salt )
+		return SetErrNo( ENFILE, -1 );
+
 	obj	= fp->obj;
 
 	if( !ValidateObject( obj ))
-		return SetErrNo( ENFILE, -1 );
-
-	if( salt != fp->salt )
 		return SetErrNo( ENFILE, -1 );
 
 	fs	= obj->fs;
@@ -4727,94 +4736,87 @@ static int _read_a( int fd, int salt, void *buff, size_t btr ) 	/* Pointer to th
 		return SetErrNo( ENFILE, -1 );	//FIXME: FR_DISK_ERR
 
 	if( (ffs_fresult_t)fp->err != FR_OK )
-		return SetErrNo( ENFILE, -1 );	//FIXME
+		return SetErrNo( ENFILE, -1 );
 
-	if( !( fp->mode & _FREAD ))
-		return SetErrNo( ENFILE, -1 );	//FIXME: FR_DENIED
+	if( obj->sizebytes == 0 || fp->fptr >= obj->sizebytes || obj->startcluster == 0 )
+		return 0;
+	
+	if( fp->fptr + BytesToRead > obj->sizebytes )
+		BytesToRead	= obj->sizebytes - fp->fptr;
 
-	if( fp->fptr >= obj->sizebytes )
+	if( BytesToRead == 0 )
 		return 0;
 
-	remain = obj->sizebytes - fp->fptr;
-	if( btr > remain )
-		btr = (unsigned int)remain;		/* Truncate btr by remaining bytes */
+	if( fp->fptr == 0 )
+		fp->currentcluster		= obj->startcluster;
+	RemainingSectorsInCluster	= (( ~fp->fptr & ( fs->bytespersector * fs->sectorspercluster - 1 )) + fs->bytespersector - 1 ) / fs->bytespersector;
+	OffsetInSector				= fp->fptr & ( fs->bytespersector - 1 );
+	CurrentSector				= clst2sect( fs, fp->currentcluster ) + fs->sectorspercluster - RemainingSectorsInCluster;
 
-	for( ; btr > 0; btr -= rcnt, bytesread += rcnt, rbuff += rcnt, fp->fptr += rcnt )  	/* Repeat until btr bytes read */
+	for( BytesRead = 0; BytesToRead > 0; BytesRead += SegmentSize, BytesToRead -= SegmentSize, buff += SegmentSize )
 		{
-		if( fp->fptr % fs->bytespersector == 0 )  			/* On the sector boundary? */
+		int	SectorCount;
+
+		if( RemainingSectorsInCluster == 0 )
 			{
-			csect = (unsigned int)( fp->fptr / fs->bytespersector & ( fs->sectorspercluster - 1 ));	/* Sector offset in the cluster */
-			if( csect == 0 )  					/* On the cluster boundary? */
-				{
-				if( fp->fptr == 0 )  			/* On the top of the file? */
-					clst = obj->startcluster;		/* Follow cluster chain from the origin */
-				else  						/* Middle or end of the file */
-					clst = get_fat( obj, fp->currentcluster );	/* Follow cluster chain on the FAT */
+			uint32_t	NextCluster;
 
-				if( clst < FIRST_VALID_CLUSTER )
-					{
-					fp->err = (uint8_t)FR_INT_ERR;
-					return SetErrNo( ENFILE, -1 );	//FIXME: FR_INT_ERR;
-					}
+			/* Either we do not have a valid cluster or it is the last one in the chain... */
+			if( !ClusterIsValid( fs, fp->currentcluster ) || !ClusterIsValid( fs, NextCluster = get_fat( obj, fp->currentcluster )))
+				return SetErrNo( ENFILE, -1 );
 
-				if( clst == 0xFFFFFFFF )
-					{
-					fp->err = (uint8_t)FR_DISK_ERR;
-					return SetErrNo( ENFILE, -1 );	//FIXME: FR_DISK_ERR
-					}
-
-				fp->currentcluster = clst;				/* Update current cluster */
-				}
-			sect = clst2sect( fs, fp->currentcluster );	/* Get current sector */
-
-			if( sect == 0 )
-				{
-				fp->err = (uint8_t)FR_INT_ERR;
-				return SetErrNo( ENFILE, -1 );	//FIXME: FR_INT_ERR
-				}
-
-			sect += csect;
-			cc = btr / fs->bytespersector;					/* When remaining bytes >= sector size, */
-			if( cc > 0 )  						/* Read maximum contiguous sectors directly */
-				{
-				if( csect + cc > fs->sectorspercluster )  	/* Clip at cluster boundary */
-					cc = fs->sectorspercluster - csect;
-				if( disk_read( fs->pdrv, rbuff, sect, cc ) != RES_OK )
-					{
-					fp->err = (uint8_t)FR_DISK_ERR;
-					return SetErrNo( ENFILE, -1 );	//FIXME: FR_DISK_ERR
-					}
-				if(( obj->statusflags & FA_DIRTY ) && obj->sectorinbuf - sect < cc )
-					memcpy( rbuff + (( obj->sectorinbuf - sect ) * fs->bytespersector ), obj->buf, fs->bytespersector );
-				rcnt = fs->bytespersector * cc;				/* Number of bytes transferred */
-				continue;
-				}
-			if( obj->sectorinbuf != sect )  			/* Load data sector if not in cache */
-				{
-				if( obj->statusflags & FA_DIRTY )  		/* Write-back dirty sector cache */
-					{
-					if( disk_write( fs->pdrv, obj->buf, obj->sectorinbuf, 1 ) != RES_OK )
-						{
-						fp->err = (uint8_t)FR_DISK_ERR;
-						return SetErrNo( ENFILE, -1 );	//FIXME: FR_DISK_ERR
-						}
-					obj->statusflags &= (uint8_t)~FA_DIRTY;
-					}
-				if( disk_read( fs->pdrv, obj->buf, sect, 1 ) != RES_OK )
-					{
-					fp->err = (uint8_t)FR_DISK_ERR;
-					return SetErrNo( ENFILE, -1 );	//FIXME: FR_DISK_ERR
-					}	/* Fill sector cache */
-				}
-			obj->sectorinbuf = sect;
+			CurrentSector				= clst2sect( fs, NextCluster );
+			RemainingSectorsInCluster	= fs->sectorspercluster;
+			fp->currentcluster			= NextCluster;
+			OffsetInSector				= 0;
 			}
-		rcnt = fs->bytespersector - (unsigned int)fp->fptr % fs->bytespersector;	/* Number of bytes remains in the sector */
-		if( rcnt > btr )
-			rcnt = btr;					/* Clip it by btr if needed */
-		memcpy( rbuff, obj->buf + fp->fptr % fs->bytespersector, rcnt );	/* Extract partial sector */
+
+		if(( obj->statusflags & FA_DIRTY ) && CurrentSector != obj->sectorinbuf )
+			{
+			if( obj->sectorinbuf != 0 && disk_write( fs->pdrv, obj->buf, obj->sectorinbuf, 1 ) != RES_OK )
+				return SetErrNo( ENFILE, -1 );
+			obj->statusflags &= ~FA_DIRTY;
+			}
+
+		/* We can read one or more entire sectors at once... */
+		if( OffsetInSector == 0 && BytesToRead >= fs->bytespersector )
+			{
+			/* Calculate the maximum number of sectors that we can read. */
+			SectorCount	= min( BytesToRead / fs->bytespersector, RemainingSectorsInCluster );
+			SegmentSize	= SectorCount * fs->bytespersector;
+
+			if( disk_read( fs->pdrv, buff, CurrentSector, SectorCount ) != RES_OK )
+				return SetErrNo( ENFILE, -1 );
+			}
+		else
+			{
+			SectorCount	= 1;
+			SegmentSize	= min( BytesToRead, fs->bytespersector - OffsetInSector );
+
+			/* We have a sector already and it is not loaded in the buffer... */
+			if( obj->sectorinbuf != CurrentSector )
+				{
+				/* ...let's load it... */
+				disk_read( fs->pdrv, obj->buf, CurrentSector, 1 );
+				obj->sectorinbuf	= CurrentSector;
+				}
+
+			memcpy( buff, &obj->buf[OffsetInSector], SegmentSize );
+			OffsetInSector	   += SegmentSize;
+			}
+
+		fp->fptr			   += SegmentSize;
+		
+		/* The sector is over and it is not the last one in the cluster... */
+		if( OffsetInSector >= fs->bytespersector && ( RemainingSectorsInCluster -= SectorCount ) > 0 )
+			{
+			/* ...let's just use the next one. */
+			CurrentSector++;
+			OffsetInSector			= 0;
+			}
 		}
 
-	return bytesread;
+	return BytesRead;
 	}
 /*----------------------------------------------------------------------------*/
 int _read( int fd, void *ptr, size_t len )
@@ -4846,153 +4848,6 @@ int _read( int fd, void *ptr, size_t len )
 /* Write File                                                            */
 /*----------------------------------------------------------------------------*/
 /*============================================================================*/
-#if 0
-/*----------------------------------------------------------------------------*/
-static int _write_a( int fd, int salt, const uint8_t *buff, size_t btw ) /* Pointer to the file object */ /* Pointer to the data to be written */ /* Number of bytes to write */ /* Pointer to number of bytes written */
-	{
-	lba_t			sect;
-	ffs_volume_t	*fs;
-	ffs_object_t	*obj;
-	ffs_file_t		*fp;
-	const uint8_t	*wbuff			= (const uint8_t*)buff;
-	uint32_t		clst;
-	unsigned int	wcnt, cc, csect;
-	size_t			byteswritten	= 0;	/* Clear write byte counter */
-
-	fp	= &FFS_Files[fd];
-	obj	= fp->obj;
-
-	if( !ValidateObject( obj ))
-		return SetErrNo( ENFILE, -1 );
-
-	if( salt != fp->salt )
-		return SetErrNo( ENFILE, -1 );
-
-	fs	= obj->fs;
-
-	if(( disk_status( fs->pdrv ) & STA_NOINIT ))
-		return SetErrNo( ENFILE, -1 );	//FIXME: FR_DISK_ERR
-
-	if( (ffs_fresult_t)fp->err != FR_OK )
-		return SetErrNo( ENFILE, -1 );
-
-	if( !( fp->mode & _FWRITE ))
-		return SetErrNo( ENFILE, -1 );	//FIXME: FR_DENIED
-
-	/* Check fptr wrap-around (file size cannot reach 4 GiB at FAT volume) */
-	if(( fs->fs_type != FFS_FILESYSTEMTYPE_EXFAT ) && (uint32_t)( fp->fptr + btw ) < (uint32_t)fp->fptr )
-		btw = (unsigned int)( 0xFFFFFFFF - (uint32_t)fp->fptr );
-
-	if(( fp->mode & _FAPPEND ) && SeekEnd( fs, fp ) < 0 )
-		return SetErrNo( ENFILE, -1 );	//FIXME
-
-	for( ; btw > 0; btw -= wcnt, byteswritten += wcnt, wbuff += wcnt, fp->fptr += wcnt, obj->sizebytes = ( fp->fptr > obj->sizebytes ) ? fp->fptr : obj->sizebytes )  	/* Repeat until all data written */
-		{
-		if( fp->fptr % fs->bytespersector == 0 )  		/* On the sector boundary? */
-			{
-			csect = (unsigned int)( fp->fptr / fs->bytespersector ) & ( fs->sectorspercluster - 1 );	/* Sector offset in the cluster */
-			if( csect == 0 )  				/* On the cluster boundary? */
-				{
-				if( fp->fptr == 0 )  		/* On the top of the file? */
-					{
-					clst = obj->startcluster;	/* Follow from the origin */
-					if( clst == 0 )  		/* If no cluster is allocated, */
-						clst = create_chain( obj, 0 );	/* create a new cluster chain */
-					}
-				else  					/* On the middle or end of the file */
-					clst = create_chain( obj, fp->currentcluster );	/* Follow or stretch cluster chain on the FAT */
-
-				if( clst == 0 )
-					{
-					obj->statusflags |= FA_MODIFIED;				/* Set file change flag */
-					return SetErrNo( ENFILE, -1 );	//FIXME		/* Could not allocate a new cluster (disk full) */
-					}
-				if( clst == 1 )
-					{
-					fp->err = (uint8_t)FR_INT_ERR;
-					return SetErrNo( ENFILE, -1 );	//FIXME: FR_INT_ERR
-					}
-				if( clst == 0xFFFFFFFF )
-					{
-					fp->err = (uint8_t)FR_DISK_ERR;
-					return SetErrNo( ENFILE, -1 );	//FIXME: FR_DISK_ERR
-					}
-				fp->currentcluster = clst;			/* Update current cluster */
-				if( obj->startcluster == 0 )
-					obj->startcluster = clst;	/* Set start cluster if the first write */
-				}
-
-			if( obj->statusflags & FA_DIRTY )  		/* Write-back sector cache */
-				{
-				if( disk_write( fs->pdrv, obj->buf, obj->sectorinbuf, 1 ) != RES_OK )
-					{
-					fp->err = (uint8_t)FR_DISK_ERR;
-					return SetErrNo( ENFILE, -1 );	//FIXME: FR_DISK_ERR
-					}
-				obj->statusflags &= (uint8_t)~FA_DIRTY;
-				}
-
-			sect = clst2sect( fs, fp->currentcluster );	/* Get current sector */
-			if( sect == 0 )
-				{
-				fp->err = (uint8_t)FR_INT_ERR;
-				return SetErrNo( ENFILE, -1 );	//FIXME: FR_INT_ERR
-				}
-
-			sect += csect;
-			cc = btw / fs->bytespersector;				/* When remaining bytes >= sector size, */
-			if( cc > 0 )  					/* Write maximum contiguous sectors directly */
-				{
-				if( csect + cc > fs->sectorspercluster )  	/* Clip at cluster boundary */
-					cc = fs->sectorspercluster - csect;
-				if( disk_write( fs->pdrv, wbuff, sect, cc ) != RES_OK )
-					{
-					fp->err = (uint8_t)FR_DISK_ERR;
-					return SetErrNo( ENFILE, -1 );	//FIXME: FR_DISK_ERR
-					}
-				if( obj->sectorinbuf - sect < cc )  /* Refill sector cache if it gets invalidated by the direct write */
-					{
-					memcpy( obj->buf, wbuff + (( obj->sectorinbuf - sect ) * fs->bytespersector ), fs->bytespersector );
-					obj->statusflags &= (uint8_t)~FA_DIRTY;
-					}
-				wcnt = fs->bytespersector * cc;		/* Number of bytes transferred */
-				continue;
-				}
-
-			/* Fill sector cache with file data */
-			if( obj->sectorinbuf != sect && fp->fptr < obj->sizebytes && disk_read( fs->pdrv, obj->buf, sect, 1 ) != RES_OK )
-				{
-				fp->err = (uint8_t)FR_DISK_ERR;
-				return SetErrNo( ENFILE, -1 );	//FIXME: FR_DISK_ERR
-				}
-
-			obj->sectorinbuf = sect;
-			}
-
-		wcnt = fs->bytespersector - (unsigned int)fp->fptr % fs->bytespersector;	/* Number of bytes remains in the sector */
-		if( wcnt > btw )
-			wcnt = btw;					/* Clip it by btw if needed */
-		memcpy( obj->buf + fp->fptr % fs->bytespersector, wbuff, wcnt );	/* Fit data to the sector */
-		obj->statusflags |= FA_DIRTY;
-		}
-
-	obj->statusflags |= FA_MODIFIED;				/* Set file change flag */
-
-	return byteswritten;
-	}
-/*----------------------------------------------------------------------------*/
-#else
-/*----------------------------------------------------------------------------*/
-static inline int __attribute__((always_inline)) ClusterIsValid( ffs_volume_t *fs, uint32_t Cluster )
-	{
-	return Cluster >= FIRST_VALID_CLUSTER && Cluster <= fs->fatentriescount;
-	}
-/*----------------------------------------------------------------------------*/
-static inline int __attribute__((always_inline)) min( int a, int b )
-	{
-	return a < b ? a : b;
-	}
-/*============================================================================*/
 static int _write_a( int fd, int salt, const uint8_t *buff, size_t BytesToWrite ) /* Pointer to the file object */ /* Pointer to the data to be written */ /* Number of bytes to write */ /* Pointer to number of bytes written */
 	{
 	ffs_file_t		*fp;
@@ -5000,10 +4855,8 @@ static int _write_a( int fd, int salt, const uint8_t *buff, size_t BytesToWrite 
 	ffs_volume_t	*fs;
 	lba_t			CurrentSector;
 	size_t			BytesWritten;
-	uint32_t		CurrentCluster;
 	int				SegmentSize;
 	int				OffsetInSector;
-	int				RemainingBytesInSector;
 	int				RemainingSectorsInCluster;
 	int				SectorHasData;
 
@@ -5028,12 +4881,12 @@ static int _write_a( int fd, int salt, const uint8_t *buff, size_t BytesToWrite 
 	if( !( fp->mode & _FWRITE ))
 		return SetErrNo( ENFILE, -1 );	//FIXME: FR_DENIED
 
-	if( BytesToWrite == 0 )
-		return 0;
-
 	/* Check fptr wrap-around (file size cannot reach 4 GiB at FAT volume) */
 	if(( fs->fs_type != FFS_FILESYSTEMTYPE_EXFAT ) && (uint32_t)( fp->fptr + BytesToWrite ) < (uint32_t)fp->fptr )
 		BytesToWrite = (unsigned int)( 0xFFFFFFFF - (uint32_t)fp->fptr );
+
+	if( BytesToWrite == 0 )
+		return 0;
 
 	if(( fp->mode & _FAPPEND ) && SeekEnd( fs, fp ) < 0 )
 		return SetErrNo( ENFILE, -1 );	//FIXME
@@ -5044,10 +4897,8 @@ static int _write_a( int fd, int salt, const uint8_t *buff, size_t BytesToWrite 
 		fp->fptr					=  0;
 		obj->startcluster			=  0;
 		obj->sizebytes 				=  0;
-		CurrentCluster				=  0;
 		fp->currentcluster			=  0;
 		RemainingSectorsInCluster	=  0;
-		RemainingBytesInSector		=  0;
 		OffsetInSector				=  0;
 		CurrentSector				=  0;
 		SectorHasData				=  0;
@@ -5055,41 +4906,41 @@ static int _write_a( int fd, int salt, const uint8_t *buff, size_t BytesToWrite 
 	else
 		{
 		if( fp->fptr == 0 )
-			fp->currentcluster		=  obj->startcluster;
-		CurrentCluster				=  fp->currentcluster;
-		RemainingSectorsInCluster	=  (( -fp->fptr & ( fs->bytespersector * fs->sectorspercluster - 1 )) + fs->bytespersector - 1 ) / fs->bytespersector;
-		RemainingBytesInSector		= -fp->fptr & ( fs->bytespersector - 1 );
-		OffsetInSector				=  fp->fptr & ( fs->bytespersector - 1 );
-		CurrentSector				= clst2sect( fs, CurrentCluster ) + fs->sectorspercluster - RemainingSectorsInCluster;
-		SectorHasData				=  fp->fptr < obj->sizebytes || OffsetInSector > 0;
+			fp->currentcluster		= obj->startcluster;
+		RemainingSectorsInCluster	= (( -fp->fptr & ( fs->bytespersector * fs->sectorspercluster - 1 )) + fs->bytespersector - 1 ) / fs->bytespersector;
+		OffsetInSector				= fp->fptr & ( fs->bytespersector - 1 );
+		CurrentSector				= clst2sect( fs, fp->currentcluster ) + fs->sectorspercluster - RemainingSectorsInCluster;
+		SectorHasData				= fp->fptr < obj->sizebytes || OffsetInSector > 0;
 		}
 
 	for( BytesWritten = 0; BytesToWrite > 0; BytesWritten += SegmentSize, BytesToWrite -= SegmentSize, buff += SegmentSize )
 		{
+		int	SectorCount;
+
 		if( CurrentSector == 0 || RemainingSectorsInCluster == 0 )
 			{
 			uint32_t	NextCluster;
 
 			/* Either we do not have a valid cluster or it is the last one in the chain... */
-			if( !ClusterIsValid( fs, CurrentCluster ) || !ClusterIsValid( fs, NextCluster = get_fat( obj, CurrentCluster )))
+			if( !ClusterIsValid( fs, fp->currentcluster ) || !ClusterIsValid( fs, NextCluster = get_fat( obj, fp->currentcluster )))
 				{
 				/* ...we will need a new cluster anyway... */
 				if( !ClusterIsValid( fs, NextCluster = create_chain( obj, 0 )))
 					/* ...but the volume if full. */
-					return -1;
+					return SetErrNo( ENFILE, -1 );
 #if 0	/* Using create_chain() frees us from doing this. */
 				/* We must mark the new cluster as used and end of chain...*/
 				if( put_fat( fs, NextCluster, 0xFFFFFFFF ) != FR_OK )
 					/* ...but some error happened. */
-					return -1;
+					return SetErrNo( ENFILE, -1 );
 #endif
 				/* Our current cluster is valid... */
-				if( ClusterIsValid( fs, CurrentCluster ))
+				if( ClusterIsValid( fs, fp->currentcluster ))
 					{
 					/* ...we must make it point to the next... */
-					if( put_fat( fs, CurrentCluster, NextCluster ) != FR_OK )
+					if( put_fat( fs, fp->currentcluster, NextCluster ) != FR_OK )
 						/* ...but some error happened. */
-						return -1;
+						return SetErrNo( ENFILE, -1 );
 					}
 				/* Our current cluster is not valid. That means that our file was empty... */
 				else
@@ -5097,10 +4948,8 @@ static int _write_a( int fd, int salt, const uint8_t *buff, size_t BytesToWrite 
 					obj->startcluster	= NextCluster;
 				}
 
-			CurrentCluster				= NextCluster;
 			CurrentSector				= clst2sect( fs, NextCluster );
 			RemainingSectorsInCluster	= fs->sectorspercluster;
-			RemainingBytesInSector		= fs->bytespersector;
 			SectorHasData				= fp->fptr < obj->sizebytes;
 			fp->currentcluster			= NextCluster;
 			OffsetInSector				= 0;
@@ -5109,47 +4958,53 @@ static int _write_a( int fd, int salt, const uint8_t *buff, size_t BytesToWrite 
 		if(( obj->statusflags & FA_DIRTY ) && CurrentSector != obj->sectorinbuf )
 			{
 			if( obj->sectorinbuf != 0 && disk_write( fs->pdrv, obj->buf, obj->sectorinbuf, 1 ) != RES_OK )
-				return -1;
+				return SetErrNo( ENFILE, -1 );
 			obj->statusflags &= ~FA_DIRTY;
 			}
-		
-		SegmentSize	= min( BytesToWrite, RemainingBytesInSector );
 
-		if( !SectorHasData )
+		/* We can write one or more entire sectors at once... */
+		if( OffsetInSector == 0 && BytesToWrite >= fs->bytespersector /*&& RemainingSectorsInCluster >= 1*/ )
 			{
-			if( !( obj->statusflags & FA_DIRTY ))
-				/* ...let's just clear the buffer and hope to get a sector later. */
-				memset( obj->buf, 0, sizeof obj->buf );
+			/* Calculate the maximum number of sectors that we can write. */
+			SectorCount	= min( BytesToWrite / fs->bytespersector, RemainingSectorsInCluster );
+			SegmentSize	= SectorCount * fs->bytespersector;
+
+			if( disk_write( fs->pdrv, buff, CurrentSector, SectorCount ) != RES_OK )
+				return SetErrNo( ENFILE, -1 );
 			}
-		/* We have a sector already and it is not loaded in the buffer... */
-		else if( obj->sectorinbuf != CurrentSector && SegmentSize < fs->bytespersector )
-			/* ...let's load it... */
-			disk_read( fs->pdrv, obj->buf, CurrentSector, 1 );
+		else
+			{
+			SectorCount	= 1;
+			SegmentSize	= min( BytesToWrite, fs->bytespersector - OffsetInSector );
 
-		obj->sectorinbuf	= CurrentSector;
+			if( SectorHasData )
+				{
+				/* We have a sector already and it is not loaded in the buffer... */
+				if( obj->sectorinbuf != CurrentSector && SegmentSize < fs->bytespersector )
+					/* ...let's load it... */
+					disk_read( fs->pdrv, obj->buf, CurrentSector, 1 );
+				}
+			else if( !( obj->statusflags & FA_DIRTY ))
+				/* ...let's just clear the buffer and hope to get a sector later. */
+				memset( obj->buf, 0, sizeof obj->buf && SegmentSize < fs->bytespersector );
 
-		memcpy( &obj->buf[OffsetInSector], buff, SegmentSize );
-		obj->statusflags  |= FA_DIRTY;
+			obj->sectorinbuf	= CurrentSector;
+			memcpy( &obj->buf[OffsetInSector], buff, SegmentSize );
+			OffsetInSector	   += SegmentSize;
+			obj->statusflags   |= FA_DIRTY;
+			}
 
-		RemainingBytesInSector -= SegmentSize;
-		OffsetInSector		   += SegmentSize;
 		fp->fptr			   += SegmentSize;
 		if( fp->fptr > obj->sizebytes )
 			obj->sizebytes		= fp->fptr;
 		
-		/* The sector is full... */
-		if( RemainingBytesInSector <= 0 )
+		/* The sector is full and it is not the last one in the cluster... */
+		if( OffsetInSector >= fs->bytespersector && ( RemainingSectorsInCluster -= SectorCount ) > 0 )
 			{
-			/* ...and it is not the last one in the cluster... */
-			if( --RemainingSectorsInCluster > 0 )
-				{
-				/* ...let's just use the next one. */
-				CurrentSector++;
-				OffsetInSector			= 0;
-				RemainingBytesInSector	= fs->bytespersector;
-				SectorHasData			= fp->fptr < obj->sizebytes;
-				fp->currentcluster		= CurrentCluster;
-				}
+			/* ...let's just use the next one. */
+			CurrentSector++;
+			OffsetInSector			= 0;
+			SectorHasData			= fp->fptr < obj->sizebytes;
 			}
 		}
 
@@ -5157,9 +5012,6 @@ static int _write_a( int fd, int salt, const uint8_t *buff, size_t BytesToWrite 
 
 	return BytesWritten;
 	}
-/*============================================================================*/
-/*----------------------------------------------------------------------------*/
-#endif
 /*----------------------------------------------------------------------------*/
 int _write( int fd, const void *ptr, size_t len )
 	{

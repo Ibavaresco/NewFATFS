@@ -8,3 +8,6 @@ private
 /examples/NewFATFS_SimpleRTOS_PIC32MZ/NewFATFS_SimpleRTOS_PIC32MZ.X/nbproject/Makefile-variables.mk
 /examples/NewFATFS_SimpleRTOS_PIC32MZ/NewFATFS_SimpleRTOS_PIC32MZ.X/nbproject/Makefile-default.mk
 /examples/NewFATFS_SimpleRTOS_PIC32MZ/NewFATFS_SimpleRTOS_PIC32MZ.X/nbproject/Makefile-genesis.properties
+debugtool
+/examples/NewFATFS_SimpleRTOS_PIC32MZ/NewFATFS_SimpleRTOS_PIC32MZ.X/defmplabxtrace.log
+/examples/NewFATFS_SimpleRTOS_PIC32MZ/NewFATFS_SimpleRTOS_PIC32MZ.X/defmplabxtrace.log.inx

@@ -1,7 +1,7 @@
 /*============================================================================*/
 /*
 
-NewFATFS
+NewFATFS <https://github.com/Ibavaresco/NewFATFS>
 
 FAT File System routines based on Chan's FatFs (<http://elm-chan.org/fsw/ff/>).
 Please see his original copyright and license further below.

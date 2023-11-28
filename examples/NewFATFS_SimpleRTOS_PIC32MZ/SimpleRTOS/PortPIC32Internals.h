@@ -51,7 +51,7 @@ static inline intsave_t __attribute((always_inline)) SaveAndDisableInterrupts( v
 	register intsave_t	Status;
 
 	Status	 = _CP0_GET_STATUS();
-   	_CP0_SET_STATUS(( Status & ~ALL_IPL_BITS ) | ( MAX_SYSCALL_INTERRUPT_PRIORITY << IPL_SHIFT ));
+	_CP0_SET_STATUS(( Status & ~ALL_IPL_BITS ) | ( MAX_SYSCALL_INTERRUPT_PRIORITY << IPL_SHIFT ));
 
 	return Status;
 	}
