@@ -9,8 +9,7 @@ extern "C" {
 #endif
 /*============================================================================*/
 #include <stdint.h>
-//#include <ffsconf.h>
-#include "../../../FATFS/Target/ffsconf.h"
+#include "ffsconf.h"
 /*============================================================================*/
 #define _USE_WRITE	1	/* 1: Enable disk_write function */
 #define _USE_IOCTL	1	/* 1: Enable disk_ioctl function */

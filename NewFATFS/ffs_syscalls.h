@@ -4,11 +4,14 @@
 /*============================================================================*/
 #include <stdint.h>
 #include <stdlib.h>
+#include <SimpleRTOSInternals.h>
 /*============================================================================*/
 typedef void *ffs_sync_t;
 /*============================================================================*/
-void		FFS_EnterCriticalSection	( void );
-void		FFS_ExitCriticalSection		( void );
+#define DeclareIntState(s) intsave_t s
+/*============================================================================*/
+intsave_t   FFS_EnterCriticalSection	( void );
+void        FFS_ExitCriticalSection     ( intsave_t s );
 ffs_sync_t	FFS_CreateMutex				( void );
 void		FFS_DeleteMutex				( ffs_sync_t sobj );
 int			FFS_TakeMutex				( ffs_sync_t sobj );

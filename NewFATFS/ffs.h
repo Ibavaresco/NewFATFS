@@ -1,7 +1,7 @@
 /*============================================================================*/
 /*
 
-NewFATFS
+NewFATFS <https://github.com/Ibavaresco/NewFATFS>
 
 FAT File System routines based on Chan's FatFs (<http://elm-chan.org/fsw/ff/>).
 Please see his original copyright and license further below.
@@ -142,8 +142,7 @@ extern "C" {
 /*============================================================================*/
 #include <stdint.h>
 #include <sys/types.h>
-//#include "ffsconf.h"		/* FatFs configuration options */
-#include "../../../FATFS/Target/ffsconf.h"		/* FatFs configuration options */
+#include "ffsconf.h"		/* FatFs configuration options */
 /*============================================================================*/
 /* Type of file size and LBA variables */
 /*============================================================================*/
@@ -261,18 +260,33 @@ access to files. */
 #define	ACCESS_ALLOW_APPEND	0x15aacba2
 #define	ACCESS_ALLOW_WRITE	0x15aacba3
 /*----------------------------------------------------------------------------*/
-int			open			( const ffs_char_t *path, int oflag, ... );
+#if         !defined _FREAD
+#define	_FREAD		0x0001	/* read enabled */
+#define	_FWRITE		0x0002	/* write enabled */
+#define	_FAPPEND	O_APPEND	/* append (writes guaranteed at the end) */
+#define	_FCREAT		O_CREAT	/* open with file create */
+#define	_FTRUNC		O_TRUNC	/* open with truncation */
+#define	_FEXCL		O_EXCL	/* error on open if file exists */
+
+//#define	O_RDONLY	0		/* +1 == FREAD */
+//#define	O_WRONLY	1		/* +1 == FWRITE */
+//#define	O_RDWR		2		/* +1 == FREAD|FWRITE */
+#endif  /*  !defined _FREAD */
+/*----------------------------------------------------------------------------*/
+int			open			( const ffs_char_t *path, long oflag, ... );
 int			read			( int fd, void *ptr, size_t len );
 int			write			( int fd, const void *ptr, size_t len );
 int			fsync			( int fd );
 int			close			( int fd );
+#if         defined FFS_CONFIG_USELBA64 && FFS_CONFIG_USELBA64 != 0
 _off64_t	lseek64			( int fd, _off64_t offset, int whence );
 _off64_t	llseek			( int fd, _off64_t offset, int whence );
-off_t		lseek			( int fd, off_t offset, int whence );
 int			ftruncate64		( int fd, ffs_off_t len );
+#endif  /*  defined FFS_CONFIG_USELBA64 && FFS_CONFIG_USELBA64 != 0 */
+off_t		lseek			( int fd, off_t offset, int whence );
 int			ftruncate		( int fd, off_t len );
 int			expand			( int fd, ffs_off_t fsz, int opt );
-int			eof				( int fp );
+//int			eof				( int fp );
 /*============================================================================*/
 /* Functions to access the meta-data of the files. */
 /*============================================================================*/

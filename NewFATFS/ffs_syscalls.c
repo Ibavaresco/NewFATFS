@@ -23,17 +23,18 @@
 /*============================================================================*/
 #include "ffs_syscalls.h"
 #include "ffs.h"
-#include "FreeRTOS.h"
-#include "semphr.h"
+#include "PortPIC32Internals.h"
+#include <SimpleRTOS.h>
+#include <Mutex.h>
 /*============================================================================*/
-void FFS_EnterCriticalSection( void )
+intsave_t FFS_EnterCriticalSection( void )
 	{
-	vPortEnterCritical();
+    return SaveAndDisableInterrupts();
 	}
 /*============================================================================*/
-void FFS_ExitCriticalSection( void )
+void FFS_ExitCriticalSection( intsave_t s )
 	{
-	vPortExitCritical();
+    RestoreInterrupts( s );
 	}
 /*============================================================================*/
 /*----------------------------------------------------------------------------*/
@@ -45,9 +46,17 @@ void FFS_ExitCriticalSection( void )
 /  the mount() function fails with FR_INT_ERR.
 */
 /*============================================================================*/
+static mutex_t SystemMutex  =
+    {
+	.Owner       = NULL,
+	.WaitingList = NULL,
+	.Count       = 0,
+	.Mode        = MUTEX_SWITCH_IMMEDIATE
+    };
+/*============================================================================*/
 ffs_sync_t FFS_CreateMutex( void )
 	{
-	return xSemaphoreCreateRecursiveMutex();
+	return &SystemMutex;
 	}
 /*============================================================================*/
 /*----------------------------------------------------------------------------*/
@@ -61,7 +70,6 @@ ffs_sync_t FFS_CreateMutex( void )
 /*============================================================================*/
 void FFS_DeleteMutex( ffs_sync_t sobj )
 	{
-	vSemaphoreDelete( sobj );
 	}
 /*============================================================================*/
 /*----------------------------------------------------------------------------*/
@@ -74,7 +82,7 @@ void FFS_DeleteMutex( ffs_sync_t sobj )
 /*============================================================================*/
 int FFS_TakeMutex( ffs_sync_t sobj )
 	{
-	return xSemaphoreTakeRecursive( sobj, -1 ) == pdTRUE;
+    MutexTake( sobj, -1 );
 	}
 /*============================================================================*/
 /*----------------------------------------------------------------------------*/
@@ -85,7 +93,7 @@ int FFS_TakeMutex( ffs_sync_t sobj )
 /*============================================================================*/
 int FFS_ReleaseMutex( ffs_sync_t sobj )
 	{
-	return xSemaphoreGiveRecursive( sobj ) == pdTRUE;
+    MutexGive( sobj, 0 );
 	}
 /*============================================================================*/
 #if _USE_LFN == 3	/* LFN with a working buffer on the heap                  */
