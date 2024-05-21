@@ -7,10 +7,8 @@
 /*============================================================================*/
 typedef void *ffs_sync_t;
 /*============================================================================*/
-#define DeclareIntState(s) int s
-/*============================================================================*/
-int			FFS_EnterCriticalSection	( void );
-void		FFS_ExitCriticalSection     ( int s );
+void		FFS_EnterCriticalSection	( void );
+void		FFS_ExitCriticalSection		( void );
 ffs_sync_t	FFS_CreateMutex				( void );
 void		FFS_DeleteMutex				( ffs_sync_t sobj );
 int			FFS_TakeMutex				( ffs_sync_t sobj );

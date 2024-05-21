@@ -22,5 +22,6 @@
         "unistd.h": "c",
         "esp_log.h": "c",
         "stdio.h": "c"
-    }
+    },
+    "cmake.configureOnOpen": false
 }
