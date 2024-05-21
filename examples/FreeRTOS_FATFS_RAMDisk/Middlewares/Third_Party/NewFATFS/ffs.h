@@ -272,7 +272,7 @@ off_t		lseek			( int fd, off_t offset, int whence );
 int			ftruncate64		( int fd, ffs_off_t len );
 int			ftruncate		( int fd, off_t len );
 int			expand			( int fd, ffs_off_t fsz, int opt );
-int			eof				( int fp );
+int			eof				( int fd );
 /*============================================================================*/
 /* Functions to access the meta-data of the files. */
 /*============================================================================*/
